@@ -1,0 +1,27 @@
+[package]
+name = "my-multi-auth"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+askama = { version = "0.12.1", features = ["with-axum"] }
+askama_axum = "0.4.0"
+axum = "0.7.4"
+axum-messages = "0.3.0"
+dotenvy = "0.15.7"
+lazy_static = "1.4.0"
+password-auth = "1.0.0"
+regex = "1.10.3"
+serde = "1.0.196"
+sqlx = { version = "0.7.3", features = ["postgres", "macros", "runtime-async-std", "uuid", "time"] }
+thiserror = "1.0.56"
+time = "0.3.31"
+tokio = { version = "1.35.1", features = ["full"] }
+tower-sessions = "0.10.1"
+tower-sessions-redis-store = "0.10.0"
+uuid = { version = "1.7.0", features = ["serde"] }
+validator = { version = "0.16.1", features = ["derive"] }
+
+[dev-dependencies]

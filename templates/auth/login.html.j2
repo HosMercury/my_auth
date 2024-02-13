@@ -1,0 +1,19 @@
+{% extends "../base.html.j2" %}
+
+{% block content %}
+<form method="post" action="/login">
+  <fieldset>
+    <legend>User login</legend>
+    <p>
+      <label for="username">Username</label>
+      <input name="username" id="username" value="ferris" />
+    </p>
+    <p>
+      <label for="password">Password</label>
+      <input name="password" id="password" type="password" value="hunter42" />
+    </p>
+  </fieldset>
+
+  <input type="submit" value="login" />
+</form>
+{% endblock %}
