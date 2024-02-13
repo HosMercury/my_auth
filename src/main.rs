@@ -1,50 +1,17 @@
-mod handlers;
-mod models;
-mod validation;
+mod users;
+mod web;
 
-use axum_messages::MessagesManagerLayer;
-use handlers::user_handler;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use std::env;
-use time::Duration;
-use tower_sessions::{Expiry, SessionManagerLayer};
-use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
-
-#[derive(Clone)]
-struct AppState {
-    app_name: &'static str,
-    db: Pool<Postgres>,
-}
+use crate::web::App;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 #[tokio::main]
-async fn main() {
-    dotenvy::dotenv().expect("error loading .env");
-    ////////////////// SESSION //////////////////////////////
-    let pool = RedisPool::new(RedisConfig::default(), None, None, None, 6).unwrap();
-    pool.connect();
-    pool.wait_for_connect().await.unwrap();
-    let session_store = RedisStore::new(pool);
-    let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(false)
-        .with_expiry(Expiry::OnInactivity(Duration::seconds(10)));
-    ////////////////// DB //////////////////////////////
-    let db_url: String = env::var("DATABASE_URL").unwrap();
-    let db = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&db_url)
-        .await
-        .expect("error connection to db");
-    ///////////// AXUM /////////////
-    let shared_state = AppState {
-        app_name: "Multi-Auth",
-        db,
-    };
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::registry()
+        .with(EnvFilter::new(std::env::var("RUST_LOG").unwrap_or_else(
+            |_| "axum_login=debug,tower_sessions=debug,sqlx=warn,tower_http=debug".into(),
+        )))
+        .with(tracing_subscriber::fmt::layer())
+        .try_init()?;
 
-    let app = user_handler::router()
-        .layer(MessagesManagerLayer)
-        .layer(session_layer)
-        .with_state(shared_state);
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    App::new().await?.serve().await
 }
