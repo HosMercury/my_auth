@@ -1,19 +1,24 @@
-{% extends "../base.html.j2" %}
+{% extends "./guest.html.j2" %}
 
 {% block content %}
-<form method="post" action="/login">
-  <fieldset>
-    <legend>User login</legend>
-    <p>
-      <label for="username">Username</label>
-      <input name="username" id="username" value="ferris" />
-    </p>
-    <p>
-      <label for="password">Password</label>
-      <input name="password" id="password" type="password" value="hunter42" />
-    </p>
-  </fieldset>
+<div class="container m-2 p-2">
+  <div style="margin-top: 100px;"
+    class="d-flex justify-content-center align-items-center p-2 mx-auto bg-white rounded-2 w-50">
+    <form method="post" action="/login">
+      <fieldset>
+        <legend>User login</legend>
+        <p>
+          <label for="username" class="">Username</label>
+          <input required name="username" id="username" value="ferris" />
+        </p>
+        <p>
+          <label for="password" class="">Password</label>
+          <input required name="password" id="password" type="password" value="hunter42" />
+        </p>
+      </fieldset>
 
-  <input type="submit" value="login" />
-</form>
+      <input type="submit" value="login" />
+    </form>
+  </div>
+</div>
 {% endblock %}

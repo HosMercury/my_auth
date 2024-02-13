@@ -1,3 +1,4 @@
+use oauth2::CsrfToken;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use time::OffsetDateTime;
@@ -41,6 +42,26 @@ impl std::fmt::Debug for User {
             .field("refresh_token", &"[redacted]")
             .finish()
     }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub enum Credentials {
+    Password(PasswordCreds),
+    OAuth(OAuthCreds),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PasswordCreds {
+    pub username: String,
+    pub password: String,
+    pub next: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct OAuthCreds {
+    pub code: String,
+    pub old_state: CsrfToken,
+    pub new_state: CsrfToken,
 }
 
 impl User {}
