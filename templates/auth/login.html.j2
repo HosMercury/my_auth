@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container m-2 p-2">
   <div style="margin-top: 100px;"
-    class="d-flex justify-content-center align-items-center p-2 mx-auto bg-white rounded-2 w-50">
+    class="d-flex flex-row justify-content-center align-items-center p-2 mx-auto bg-white rounded-2 w-50">
     <form method="post" action="/login">
       <fieldset>
         <legend>User login</legend>
@@ -19,6 +19,9 @@
 
       <input type="submit" value="login" />
     </form>
+    <div>
+      <a href="/google/oauth">Log in with google</a>
+    </div>
   </div>
 </div>
 {% endblock %}

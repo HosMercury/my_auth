@@ -1,8 +1,10 @@
 use askama::Template;
+use axum::extract::State;
+use axum::http::StatusCode;
 use axum::{extract::Query, routing::get, Form, Router};
 use serde::Deserialize;
 
-use crate::users::PasswordCreds;
+use crate::users::{Credentials, PasswordCreds, User};
 use crate::AppState;
 
 #[derive(Template)]
@@ -24,14 +26,20 @@ pub fn router() -> Router<AppState> {
     Router::new().route("/login", get(login).post(password))
 }
 
-pub async fn login(Query(NextUrl { next }): Query<NextUrl>) -> LoginTemplate {
-    LoginTemplate {
-        title: "Login",
-        messages: None,
-        next,
-    }
+pub async fn login(Query(NextUrl { next }): Query<NextUrl>) -> (StatusCode, LoginTemplate) {
+    (
+        StatusCode::OK,
+        LoginTemplate {
+            title: "Login",
+            messages: None,
+            next,
+        },
+    )
 }
 
-pub async fn password(Form(creds): Form<PasswordCreds>) {
-    //
+pub async fn password(
+    State(AppState { db, client }): State<AppState>,
+    Form(creds): Form<PasswordCreds>,
+) {
+    let user = User::authenticate(Credentials::Password(creds.clone()), db, client).await;
 }

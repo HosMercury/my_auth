@@ -10,7 +10,7 @@ use time::Duration;
 use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use web::auth;
+use web::{auth, oauth};
 #[derive(Clone)]
 struct AppState {
     db: PgPool,
@@ -79,6 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .merge(auth::router())
+        .merge(oauth::router())
         .layer(session_layer)
         .with_state(state);
 

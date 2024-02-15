@@ -1,0 +1,9 @@
+/oauth/callback?state=g36Hl8p00Ds-1gTssqEdwQ
+&code=4%2F0AeaYSHDTb6LhRX5FaZJg-mk1e6B15kz3kCi3ZDXydgf-oRTYF6JzfSsqci8yWVh45CvIUg
+&scope=email+profile+openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email
+&authuser=0
+&prompt=consent
+B0vL5qS19IYT1vQvsMJl9w
+
+code
+state == csrf token

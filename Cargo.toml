@@ -12,7 +12,7 @@ axum = "0.7.4"
 axum-messages = "0.3.0"
 dotenvy = "0.15.7"
 lazy_static = "1.4.0"
-oauth2 = "4.4.2"
+oauth2 = { version = "4.4.2", features = ["reqwest"] }
 password-auth = "1.0.0"
 regex = "1.10.3"
 serde = "1.0.196"
@@ -25,5 +25,6 @@ tower-sessions-redis-store = "0.10.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.7.0", features = ["serde"] }
 validator = { version = "0.16.1", features = ["derive"] }
+reqwest = { version = "0.11.22", features = ["json"] }
 
 [dev-dependencies]
