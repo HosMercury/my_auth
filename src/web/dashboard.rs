@@ -16,14 +16,10 @@ pub fn router() -> Router<AppState> {
 
 #[axum::debug_handler]
 pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
-    println!("dashboard");
-
-    println!("user: {:?}", user.name);
-
     DashboardTemplate {
         title: "Dashboard",
         messages: None,
-        username: "Hos".to_string(),
+        username: user.name,
     }
 }
 
