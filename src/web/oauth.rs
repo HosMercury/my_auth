@@ -1,6 +1,5 @@
 use crate::{
     users::{Credentials, GoogleOauth, OAuthCreds, User},
-    web::auth::LoginTemplate,
     AppState,
 };
 use askama_axum::IntoResponse;
@@ -16,7 +15,7 @@ use serde::Deserialize;
 use tower_sessions::Session;
 
 pub const CSRF_STATE_KEY: &str = "oauth.csrf-state";
-pub const NEXT_URL_KEY: &str = "auth.next-url";
+// pub const NEXT_URL_KEY: &str = "auth.next-url";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct OauthUrlQuery {
@@ -31,11 +30,10 @@ pub fn router() -> Router<AppState> {
 }
 
 pub async fn google_oauth(
-    State(AppState { client, db }): State<AppState>,
+    State(AppState { client, .. }): State<AppState>,
     session: Session,
 ) -> impl IntoResponse {
     let url = GoogleOauth::authorize_url(client, session).await;
-
     Redirect::to(url.as_str())
 }
 
@@ -47,8 +45,6 @@ pub async fn callback(
         state: new_state,
     }): Query<OauthUrlQuery>,
 ) -> impl IntoResponse {
-    println!("callback");
-
     let Ok(Some(old_state)) = session.get(CSRF_STATE_KEY).await else {
         return StatusCode::BAD_REQUEST.into_response();
     };
@@ -59,31 +55,9 @@ pub async fn callback(
         new_state,
     });
 
-    let user = match User::authenticate(creds, db, client).await {
-        Ok(Some(user)) => user,
-        Ok(None) => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                LoginTemplate {
-                    messages: None,
-                    next: None,
-                    title: "Login",
-                },
-            )
-                .into_response()
-        }
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR.into_response(),
-    };
-
-    println!("?User ===> {:?}", user.name);
-
-    // if auth_session.login(&user).await.is_err() {
-    //     return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-    // }
-
-    if let Ok(Some(next)) = session.remove::<String>(NEXT_URL_KEY).await {
-        Redirect::to(&next).into_response()
-    } else {
-        Redirect::to("/").into_response()
+    match User::authenticate(creds, db, client, session).await {
+        Ok(Some(_)) => Redirect::to("/").into_response(),
+        Ok(None) => Redirect::to("/login").into_response(),
+        Err(_) => Redirect::to("/login").into_response(),
     }
 }

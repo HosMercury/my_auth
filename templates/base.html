@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <link rel="stylesheet" href="assets/output.css" type="text/css">
+  <title>
+    {% block title %}
+    {{ title }} | Multi Auth
+    {% endblock %}
+  </title>
+  {% block head %}
+  {% endblock %}
+</head>
+
+<body class="">
+  {% include "partials/nav.html" %}
+  <div id="content" class="min-h-screen w-full p-4">
+    {% block content %}
+    {% endblock %}
+  </div>
+  <footer class="w-full bg-gray-700 text-white h-12 flex items-center justify-center">
+    <span class="">All rights reserved</span>
+  </footer>
+</body>
+
+</html>

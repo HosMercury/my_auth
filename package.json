@@ -1,0 +1,22 @@
+{
+  "name": "rust",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HosMercury/my_auth.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HosMercury/my_auth/issues"
+  },
+  "homepage": "https://github.com/HosMercury/my_auth#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}

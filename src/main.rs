@@ -1,16 +1,20 @@
+mod extractors;
+mod middlewares;
 mod users;
 mod web;
 
 use std::env;
 
-use axum::Router;
+use axum::middleware;
 use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use time::Duration;
+use tower_http::services::ServeDir;
 use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use web::{auth, oauth};
+use web::{auth, dashboard, oauth};
+
 #[derive(Clone)]
 struct AppState {
     db: PgPool,
@@ -74,14 +78,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_same_site(SameSite::Lax) // Ensure we send the cookie from the OAuth redirect.
         .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
-    /////////////////////////   State   /////////////////////////
+    /////////////////////////  State  /////////////////////////
     let state = AppState { db, client };
 
-    let app = Router::new()
+    let app = dashboard::router()
+        .layer(middleware::from_fn(middlewares::auth_middlware))
         .merge(auth::router())
         .merge(oauth::router())
         .layer(session_layer)
-        .with_state(state);
+        .with_state(state)
+        .nest_service("/assets", ServeDir::new("assets"));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();

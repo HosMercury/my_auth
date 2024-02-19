@@ -1,0 +1,18 @@
+<nav class="flex justify-between items-center bg-gray-700 text-white w-full h-16 flex-row text-lg mb-4">
+  <div class="flex flex-row items-center space-x-10 mx-4 px-4">
+    <a class="bg-white font-bold text-xl text-gray-700 p-8" href="/">Rust Auth</a>
+    <ul class="">
+      <li class="">
+        <a class="h-full" href="/">Dashboard</a>
+      </li>
+    </ul>
+  </div>
+  <div class="flex flex-row items-center justify-between space-x-10 mx-4 px-4 h-full">
+    <p class="">
+      {{ username }}
+    </p>
+    <form action="/logout" method="post" class="bg-gray-600 px-4 h-full">
+      <button class="h-full" type="submit">Logout</button>
+    </form>
+  </div>
+</nav>

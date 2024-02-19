@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <link rel="stylesheet" href="assets/output.css" type="text/css">
+
+  <title>
+    {% block title %}
+    {{ title }} | Multi Auth
+    {% endblock %}
+  </title>
+
+  {% block head %}
+  {% endblock %}
+</head>
+
+<body class="bg-gray-400 font-primary">
+  {# flash messages #}
+
+  <div id="content" class="flex justify-center items-center min-h-screen">
+    {% block content %}
+    {% endblock %}
+  </div>
+
+</body>
+
+</html>

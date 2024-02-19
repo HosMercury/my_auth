@@ -1,0 +1,28 @@
+{% extends "./guest.html" %}
+
+{% block content %}
+<div class="bg-white w-1/2 p-2 text-center border rounded-xl shadow-md">
+  <div class="p-2">
+    <form method="post" action="/login" class="my-4">
+      <fieldset>
+        <legend class="font-bold my-2 text-xl text-gray-500 mb-4">Please sign in</legend>
+        <p class="my-2">
+          <label for="username" class="p-2 w-16">Username</label>
+          <input required name="username" id="username" value="ferris" class="border p-1 rounded-md border-gray-300" />
+        </p>
+        <p class="my-2">
+          <label for="password" class="p-2 w-16">Password</label>
+          <input required name="password" id="password" type="password" value="hunter42" class="border p-1 rounded-md border-gray-300" />
+        </p>
+      </fieldset>
+
+      <button type="submit" class="bg-gray-500 text-white border rounded-md p-1 my-1 px-2 cursor-pointer">
+        Log in</button>
+    </form>
+    <a href="/google/oauth" class="bg-red-400 text-white border rounded-md roundedmy-4 w-fit text-center p-1 px-2">
+      Log in with google
+    </a>
+  </div>
+
+</div>
+{% endblock %}

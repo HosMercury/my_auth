@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
-axum = "0.7.4"
+axum = { version = "0.7.4", features = ["macros"] }
 axum-messages = "0.3.0"
 dotenvy = "0.15.7"
 lazy_static = "1.4.0"
@@ -26,5 +26,8 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.7.0", features = ["serde"] }
 validator = { version = "0.16.1", features = ["derive"] }
 reqwest = { version = "0.11.22", features = ["json"] }
+tower-http = { version = "0.5.1", features = ["fs"] }
+tower = "0.4.13"
+async-trait = "0.1.77"
 
 [dev-dependencies]

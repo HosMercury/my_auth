@@ -1,14 +1,10 @@
-use axum::{
-    http::header::{AUTHORIZATION, USER_AGENT},
-    Error,
-};
+use axum::http::header::{AUTHORIZATION, USER_AGENT};
 use oauth2::{
     basic::{BasicClient, BasicRequestTokenError},
     reqwest::{async_http_client, AsyncHttpClientError},
     AuthorizationCode, CsrfToken, Scope, TokenResponse,
 };
 use password_auth::verify_password;
-use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
 use sqlx::{query_as, FromRow, PgPool};
 use time::OffsetDateTime;
@@ -16,14 +12,14 @@ use tokio::task;
 use tower_sessions::Session;
 use uuid::Uuid;
 
-use crate::web::oauth::CSRF_STATE_KEY;
+use crate::web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY};
 
 #[derive(Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: Uuid,
     pub name: String,
-    pub username: String,
-    pub email: String,
+    pub username: Option<String>,
+    pub email: Option<String>,
 
     #[serde(skip_serializing)]
     pub password: Option<String>,
@@ -44,6 +40,11 @@ pub struct User {
 
     #[serde(with = "time::serde::iso8601::option")]
     pub last_login: Option<OffsetDateTime>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct AuthUser {
+    pub name: String,
 }
 
 // access token.
@@ -87,7 +88,7 @@ pub struct OAuthCreds {
 
 #[derive(Debug, Deserialize)]
 struct UserInfo {
-    name: String,
+    given_name: String,
     email: String,
 }
 
@@ -111,6 +112,7 @@ impl User {
         creds: Credentials,
         db: PgPool,
         client: BasicClient,
+        session: Session,
     ) -> Result<Option<User>, AuthError> {
         match creds {
             Credentials::Password(password_cred) => {
@@ -123,7 +125,7 @@ impl User {
 
                 // Verifying the password is blocking and potentially slow, so we'll do so via
                 // `spawn_blocking`.
-                task::spawn_blocking(|| {
+                let user_result = task::spawn_blocking(|| {
                     // We're using password-based authentication: this works by comparing our form
                     // input with an argon2 password hash.
                     Ok(user.filter(|user| {
@@ -133,7 +135,28 @@ impl User {
                         verify_password(password_cred.password, password).is_ok()
                     }))
                 })
-                .await?
+                .await
+                .map_err(AuthError::TaskJoin)?;
+
+                match user_result {
+                    Ok(user) => match user {
+                        Some(user) => {
+                            session
+                                .insert(
+                                    USER_SESSION_KEY,
+                                    AuthUser {
+                                        name: user.name.clone(),
+                                    },
+                                )
+                                .await
+                                .unwrap();
+
+                            Ok(Some(user))
+                        }
+                        None => Ok(None),
+                    },
+                    Err(err) => Err(err),
+                }
             }
 
             Credentials::OAuth(oauth_creds) => {
@@ -143,19 +166,23 @@ impl User {
                 };
 
                 // Process authorization code, expecting a token response back.
-                let token_res = client
+                let token_response = client
                     .exchange_code(AuthorizationCode::new(oauth_creds.code))
                     .request_async(async_http_client)
                     .await
                     .map_err(AuthError::OAuth2)?;
 
+                println!(
+                    "Google returned the following token:\n{:?}\n",
+                    token_response
+                );
                 // Use access token to request user info.
                 let user_info = reqwest::Client::new()
                     .get("https://www.googleapis.com/oauth2/v3/userinfo")
                     .header(USER_AGENT.as_str(), "login")
                     .header(
                         AUTHORIZATION.as_str(),
-                        format!("Bearer {}", token_res.access_token().secret()),
+                        format!("Bearer {}", token_response.access_token().secret()),
                     )
                     .send()
                     .await
@@ -165,21 +192,31 @@ impl User {
                     .map_err(AuthError::Reqwest)?;
 
                 // Persist user in our database so we can use `get_user`.
-                let user = query_as(
+                let user: User = query_as(
                     r#"
-                    insert into users (name, username, email, access_token)
-                    values ($1, $2, $2, $3)
-                    on conflict(username) do update
+                    insert into users (name, email, access_token)
+                    values ($1, $2, $3)
+                    on conflict(email) do update
                     set access_token = excluded.access_token
                     returning *
                     "#,
                 )
-                .bind(user_info.name)
+                .bind(user_info.given_name)
                 .bind(user_info.email)
-                .bind(token_res.access_token().secret())
+                .bind(token_response.access_token().secret())
                 .fetch_one(&db)
                 .await
                 .map_err(AuthError::Sqlx)?;
+
+                session
+                    .insert(
+                        USER_SESSION_KEY,
+                        AuthUser {
+                            name: user.name.clone(),
+                        },
+                    )
+                    .await
+                    .unwrap();
 
                 Ok(Some(user))
             }
