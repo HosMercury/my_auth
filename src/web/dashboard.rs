@@ -23,10 +23,10 @@ pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
     }
 }
 
-pub async fn t() -> DashboardTemplate {
+pub async fn t(user: AuthUser) -> DashboardTemplate {
     DashboardTemplate {
         title: "Dashboard",
         messages: None,
-        username: "Hos".to_string(),
+        username: user.name,
     }
 }

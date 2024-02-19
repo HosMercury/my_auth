@@ -5,7 +5,11 @@
   <div class="p-2">
     <form method="post" action="/login" class="my-4">
       <fieldset>
-        <legend class="font-bold my-2 text-xl text-gray-500 mb-4">Please sign in</legend>
+        <legend class="font-bold my-2 text-xl text-gray-500 mb-4">Registerion form</legend>
+        <p class="my-2">
+          <label for="username" class="p-2 w-16">Name</label>
+          <input required name="name" id="name" value="foo" class="border p-1 rounded-md border-gray-300" />
+        </p>
         <p class="my-2">
           <label for="username" class="p-2 w-16">Username</label>
           <input required name="username" id="username" value="ferris" class="border p-1 rounded-md border-gray-300" />
@@ -14,17 +18,21 @@
           <label for="password" class="p-2 w-16">Password</label>
           <input required name="password" id="password" type="password" value="hunter42" class="border p-1 rounded-md border-gray-300" />
         </p>
+        <p class="my-2">
+          <label for="password" class="p-2 w-16">Confirm Password</label>
+          <input required name="password2" id="password2" type="password2" value="hunter42" class="border p-1 rounded-md border-gray-300" />
+        </p>
       </fieldset>
 
       <button type="submit" class="bg-gray-500 text-white border rounded-md p-1 my-1 px-2 cursor-pointer">
-        Log in</button>
+        Register</button>
     </form>
     <a href="/google/oauth" class="bg-red-600 text-white border rounded-md roundedmy-4 w-fit text-center p-2 px-2 mx-2">
       Log in with google
     </a>
 
-    <a href="/register" class="bg-gray-700 text-white border rounded-md roundedmy-4 w-fit text-center p-2 px-2">
-      Register
+    <a href="/login" class="bg-gray-700 text-white border rounded-md roundedmy-4 w-fit text-center p-2 px-2">
+      Log in
     </a>
   </div>
 

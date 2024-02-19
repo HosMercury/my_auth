@@ -1,7 +1,6 @@
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::State;
-use axum::handler::Handler;
 use axum::middleware;
 use axum::response::Redirect;
 use axum::routing::post;
@@ -20,8 +19,16 @@ pub struct LoginTemplate {
     pub messages: Option<Vec<String>>,
 }
 
+#[derive(Template)]
+#[template(path = "pages/register.html")]
+pub struct RegisterTemplate {
+    pub title: &'static str,
+    pub messages: Option<Vec<String>>,
+}
+
 pub fn router() -> Router<AppState> {
     Router::new()
+        .route("/register", get(register))
         .route("/login", get(login).post(password))
         .layer(middleware::from_fn(middlewares::is_authenticated_middlware))
         .route("/logout", post(logout))
@@ -30,6 +37,13 @@ pub fn router() -> Router<AppState> {
 pub async fn login() -> LoginTemplate {
     LoginTemplate {
         title: "Login",
+        messages: None,
+    }
+}
+
+pub async fn register() -> RegisterTemplate {
+    RegisterTemplate {
+        title: "Register",
         messages: None,
     }
 }

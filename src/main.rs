@@ -5,7 +5,7 @@ mod web;
 
 use std::env;
 
-use axum::middleware;
+use axum::{middleware, response::Redirect};
 use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use time::Duration;
@@ -82,6 +82,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState { db, client };
 
     let app = dashboard::router()
+        // no need for middleware bc extractor do the same thing
+        // but it is still here for just in case or other need for other projs
         .layer(middleware::from_fn(middlewares::auth_middlware))
         .merge(auth::router())
         .merge(oauth::router())

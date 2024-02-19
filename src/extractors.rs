@@ -2,6 +2,7 @@ use axum::{
     async_trait,
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
+    response::Redirect,
 };
 use tower_sessions::Session;
 
@@ -12,7 +13,7 @@ impl<S> FromRequestParts<S> for AuthUser
 where
     S: Send + Sync,
 {
-    type Rejection = StatusCode;
+    type Rejection = Redirect;
 
     async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
         let user = parts
@@ -25,7 +26,7 @@ where
 
         match user {
             Some(user) => Ok(AuthUser { name: user.name }),
-            None => Err(StatusCode::UNAUTHORIZED),
+            None => Err(Redirect::to("/login")),
         }
     }
 }

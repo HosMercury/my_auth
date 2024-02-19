@@ -6,7 +6,6 @@ use crate::{
 use askama_axum::IntoResponse;
 use axum::{
     extract::{Query, State},
-    handler::Handler,
     http::StatusCode,
     middleware,
     response::Redirect,
