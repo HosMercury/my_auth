@@ -1,13 +1,15 @@
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::State;
+use axum::handler::Handler;
+use axum::middleware;
 use axum::response::Redirect;
 use axum::routing::post;
 use axum::{routing::get, Form, Router};
 use tower_sessions::Session;
 
 use crate::users::{Credentials, PasswordCreds, User};
-use crate::AppState;
+use crate::{middlewares, AppState};
 
 pub const USER_SESSION_KEY: &str = "user";
 
@@ -21,6 +23,7 @@ pub struct LoginTemplate {
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/login", get(login).post(password))
+        .layer(middleware::from_fn(middlewares::is_authenticated_middlware))
         .route("/logout", post(logout))
 }
 

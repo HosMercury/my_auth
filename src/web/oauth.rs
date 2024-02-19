@@ -1,11 +1,14 @@
 use crate::{
+    middlewares,
     users::{Credentials, GoogleOauth, OAuthCreds, User},
     AppState,
 };
 use askama_axum::IntoResponse;
 use axum::{
     extract::{Query, State},
+    handler::Handler,
     http::StatusCode,
+    middleware,
     response::Redirect,
     routing::get,
     Router,
@@ -27,6 +30,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/google/oauth", get(google_oauth))
         .route("/oauth/callback", get(callback))
+        .layer(middleware::from_fn(middlewares::is_authenticated_middlware))
 }
 
 pub async fn google_oauth(
