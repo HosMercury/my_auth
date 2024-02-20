@@ -11,22 +11,28 @@ pub struct DashboardTemplate {
 }
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/", get(dashboard)).route("/t", get(t))
+    Router::new()
+        .route("/", get(self::get::dashboard))
+        .route("/t", get(self::get::test))
 }
 
-#[axum::debug_handler]
-pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
-    DashboardTemplate {
-        title: "Dashboard",
-        messages: None,
-        username: user.name,
+mod get {
+    use super::*;
+
+    // #[axum::debug_handler]
+    pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
+        DashboardTemplate {
+            title: "Dashboard",
+            messages: None,
+            username: user.name,
+        }
     }
-}
 
-pub async fn t(user: AuthUser) -> DashboardTemplate {
-    DashboardTemplate {
-        title: "Dashboard",
-        messages: None,
-        username: user.name,
+    pub async fn test(user: AuthUser) -> DashboardTemplate {
+        DashboardTemplate {
+            title: "Dashboard",
+            messages: None,
+            username: user.name,
+        }
     }
 }

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ,
         deleted_at TIMESTAMPTZ,
-        last_login TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        last_sign TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
 ----------------- Seeding --------------

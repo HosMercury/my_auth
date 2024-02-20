@@ -1,13 +1,11 @@
-mod extractors;
-mod middlewares;
 mod users;
+mod utils;
 mod web;
 
-use std::env;
-
-use axum::{middleware, response::Redirect};
+use axum::middleware;
 use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use sqlx::{postgres::PgPoolOptions, PgPool};
+use std::env;
 use time::Duration;
 use tower_http::services::ServeDir;
 use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
@@ -25,7 +23,7 @@ struct AppState {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::registry()
         .with(EnvFilter::new(std::env::var("RUST_LOG").unwrap_or_else(
-            |_| "axum_login=debug,tower_sessions=debug,sqlx=warn,tower_http=debug".into(),
+            |_| "axum=debug,tower_sessions=debug,sqlx=warn,tower_http=debug".into(),
         )))
         .with(tracing_subscriber::fmt::layer())
         .try_init()?;
@@ -84,7 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = dashboard::router()
         // no need for middleware bc extractor do the same thing
         // but it is still here for just in case or other need for other projs
-        .layer(middleware::from_fn(middlewares::auth_middlware))
+        .layer(middleware::from_fn(utils::auth_middlware))
         .merge(auth::router())
         .merge(oauth::router())
         .layer(session_layer)

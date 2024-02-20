@@ -1,11 +1,10 @@
 {% extends "./guest.html" %}
-
 {% block content %}
 <div class="bg-white w-1/2 p-2 text-center border rounded-xl shadow-md">
   <div class="p-2">
-    <form method="post" action="/login" class="my-4">
+    <form method="post" action="/signin" class="my-4">
       <fieldset>
-        <legend class="font-bold my-2 text-xl text-gray-500 mb-4">Registerion form</legend>
+        <legend class="font-bold my-2 text-xl text-gray-500 mb-4">Sign up form</legend>
         <p class="my-2">
           <label for="username" class="p-2 w-16">Name</label>
           <input required name="name" id="name" value="foo" class="border p-1 rounded-md border-gray-300" />
@@ -25,14 +24,14 @@
       </fieldset>
 
       <button type="submit" class="bg-gray-500 text-white border rounded-md p-1 my-1 px-2 cursor-pointer">
-        Register</button>
+        Sign Up</button>
     </form>
     <a href="/google/oauth" class="bg-red-600 text-white border rounded-md roundedmy-4 w-fit text-center p-2 px-2 mx-2">
-      Log in with google
+      Sign in with google
     </a>
 
-    <a href="/login" class="bg-gray-700 text-white border rounded-md roundedmy-4 w-fit text-center p-2 px-2">
-      Log in
+    <a href="/signin" class="bg-gray-700 text-white border rounded-md roundedmy-4 w-fit text-center p-2 px-2">
+      Sign in
     </a>
   </div>
 

@@ -1,3 +1,7 @@
+use crate::{
+    utils::{email_exists, username_exists, validate_password, REGEX_USERNAME},
+    web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY},
+};
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
 use oauth2::{
     basic::{BasicClient, BasicRequestTokenError},
@@ -11,8 +15,22 @@ use time::OffsetDateTime;
 use tokio::task;
 use tower_sessions::Session;
 use uuid::Uuid;
+use validator::Validate;
 
-use crate::web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY};
+#[derive(Clone, Serialize, Deserialize)]
+pub struct AuthUser {
+    pub name: String,
+}
+
+impl AuthUser {
+    pub async fn is_authenticated(&self, session: Session) -> bool {
+        session
+            .get::<AuthUser>(USER_SESSION_KEY)
+            .await
+            .unwrap()
+            .is_some()
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
@@ -39,12 +57,7 @@ pub struct User {
     pub deleted_at: Option<OffsetDateTime>,
 
     #[serde(with = "time::serde::iso8601::option")]
-    pub last_login: Option<OffsetDateTime>,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct AuthUser {
-    pub name: String,
+    pub last_sign: Option<OffsetDateTime>,
 }
 
 // access token.
@@ -58,7 +71,7 @@ impl std::fmt::Debug for User {
             .field("created_at", &self.created_at)
             .field("updated_at", &self.updated_at)
             .field("updated_at", &self.deleted_at)
-            .field("last_login", &self.last_login)
+            .field("last_sign", &self.last_sign)
             .field("password", &"[redacted]")
             .field("access_token", &"[redacted]")
             .field("refresh_token", &"[redacted]")
@@ -72,10 +85,26 @@ pub enum Credentials {
     OAuth(OAuthCreds),
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Validate)]
 pub struct PasswordCreds {
+    #[validate(
+        length(min = 4, message = "Username must be greater than 4 chars"),
+        regex(
+            path = "REGEX_USERNAME",
+            message = "Username must be alphanumeric and/or dashes only"
+        )
+    )]
     pub username: String,
+
+    #[validate(
+        length(min = 4, message = "Password must be more than 4 letters"),
+        custom(
+            function = "validate_password",
+            message = "password must be 4-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji"
+        )
+    )]
     pub password: String,
+
     pub next: Option<String>,
 }
 
@@ -84,6 +113,39 @@ pub struct OAuthCreds {
     pub code: String,
     pub old_state: CsrfToken,
     pub new_state: CsrfToken,
+}
+
+#[derive(Debug, Clone, Deserialize, Validate)]
+pub struct SignUp {
+    #[validate(
+        length(min = 4, message = "Name must be greater than 4 chars"),
+        regex(
+            path = "REGEX_USERNAME",
+            message = "Name must be alphanumeric and/or dashes only"
+        )
+    )]
+    pub name: String,
+
+    #[validate(
+        length(min = 4, message = "Username must be greater than 4 chars"),
+        regex(
+            path = "REGEX_USERNAME",
+            message = "Username must be alphanumeric and/or dashes only"
+        )
+    )]
+    pub username: String,
+
+    #[validate(
+        length(min = 4, message = "Password must be more than 4 letters"),
+        custom(
+            function = "validate_password",
+            message = "password must be 4-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji"
+        )
+    )]
+    pub password: String,
+
+    #[validate(must_match = "password")]
+    pub password2: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -172,14 +234,10 @@ impl User {
                     .await
                     .map_err(AuthError::OAuth2)?;
 
-                println!(
-                    "Google returned the following token:\n{:?}\n",
-                    token_response
-                );
                 // Use access token to request user info.
                 let user_info = reqwest::Client::new()
                     .get("https://www.googleapis.com/oauth2/v3/userinfo")
-                    .header(USER_AGENT.as_str(), "login")
+                    .header(USER_AGENT.as_str(), "signin")
                     .header(
                         AUTHORIZATION.as_str(),
                         format!("Bearer {}", token_response.access_token().secret()),
