@@ -41,7 +41,7 @@ pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     }
 }
 
-pub async fn username_exists(username: &str, pool: &Pool<Postgres>) -> bool {
+pub async fn username_exists(username: String, pool: &Pool<Postgres>) -> bool {
     query!("SELECT username FROM users WHERE username = $1", username)
         .fetch_one(pool)
         .await
@@ -56,13 +56,13 @@ pub async fn email_exists(email: &str, pool: &Pool<Postgres>) -> bool {
 }
 
 pub fn extract_errors(
-    errors: &HashMap<&'static str, ValidationErrorsKind>,
+    errors: HashMap<&'static str, ValidationErrorsKind>,
 ) -> HashMap<String, String> {
     let mut extracted_errs: HashMap<String, String> = HashMap::new();
     for (k, v) in errors {
         match v {
-            ValidationErrorsKind::Struct(_) => todo!(),
-            ValidationErrorsKind::List(_) => {}
+            ValidationErrorsKind::Struct(_) => {} // todo
+            ValidationErrorsKind::List(_) => {}   // todo
             ValidationErrorsKind::Field(errs) => {
                 for err in errs {
                     let msg = err.message.as_ref().unwrap();

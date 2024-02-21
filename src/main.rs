@@ -3,6 +3,7 @@ mod utils;
 mod web;
 
 use axum::middleware;
+use axum_messages::MessagesManagerLayer;
 use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::env;
@@ -85,6 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(middleware::from_fn(utils::auth_middlware))
         .merge(auth::router())
         .merge(oauth::router())
+        .layer(MessagesManagerLayer)
         .layer(session_layer)
         .with_state(state)
         .nest_service("/assets", ServeDir::new("assets"));

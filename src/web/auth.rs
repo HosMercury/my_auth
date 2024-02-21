@@ -35,28 +35,59 @@ pub fn router() -> Router<AppState> {
 }
 
 mod get {
+
     use super::*;
 
     pub async fn signin() -> SigninTemplate {
         SigninTemplate {
-            title: "sign in",
+            title: "Sign in",
             messages: None,
         }
     }
 
     pub async fn signup() -> SignupTemplate {
         SignupTemplate {
-            title: "Sign Up",
+            title: "Sign up",
             messages: None,
         }
     }
 }
 
 mod post {
+    use axum_messages::Messages;
+    use validator::Validate;
+
+    use crate::utils::extract_errors;
+
+    use self::utils::username_exists;
+
     use super::*;
 
-    pub async fn signup(Form(signup): Form<SignUp>) {
-        //
+    pub async fn signup(
+        messages: Messages,
+        State(AppState { db, .. }): State<AppState>,
+        Form(signup_data): Form<SignUp>,
+    ) -> impl IntoResponse {
+        match signup_data.validate() {
+            Ok(_) => {
+                // save to db
+                Redirect::to("/")
+            }
+            Err(_) => {
+                messages
+                    .clone()
+                    .into_iter()
+                    .for_each(|msg| println!("{}", msg));
+
+                if username_exists(signup_data.username, &db).await {
+                    messages.error("Username is already taken");
+
+                    Redirect::to("/signup")
+                } else {
+                    Redirect::to("/")
+                }
+            } //
+        }
     }
 
     pub async fn password(

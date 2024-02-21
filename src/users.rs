@@ -139,12 +139,12 @@ pub struct SignUp {
         length(min = 4, message = "Password must be more than 4 letters"),
         custom(
             function = "validate_password",
-            message = "password must be 4-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji"
+            message = "Password must be 4-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji"
         )
     )]
     pub password: String,
 
-    #[validate(must_match = "password")]
+    #[validate(must_match(other = "password", message = "passwords are not identical"))]
     pub password2: String,
 }
 
@@ -179,7 +179,7 @@ impl User {
         match creds {
             Credentials::Password(password_cred) => {
                 let user: Option<Self> =
-                    query_as("select * from users where username = $1 and password is not null")
+                    query_as("SELECT * FROM users WHERE username = $1 AND password IS NOT NULL")
                         .bind(password_cred.username)
                         .fetch_optional(&db)
                         .await
@@ -252,11 +252,11 @@ impl User {
                 // Persist user in our database so we can use `get_user`.
                 let user: User = query_as(
                     r#"
-                    insert into users (name, email, access_token)
-                    values ($1, $2, $3)
-                    on conflict(email) do update
-                    set access_token = excluded.access_token
-                    returning *
+                        INSERT INTO users (name, email, access_token)
+                        VALUES ($1, $2, $3)
+                        ON CONFLICT(email) DO UPDATE
+                        SET access_token = excluded.access_token
+                        RETURNING *
                     "#,
                 )
                 .bind(user_info.given_name)
@@ -299,7 +299,7 @@ impl GoogleOauth {
         session
             .insert(CSRF_STATE_KEY, csrf_token)
             .await
-            .expect("session failed to insert oauth csrf token");
+            .expect("Session failed to insert oauth csrf token");
 
         auth_url.to_string()
     }
