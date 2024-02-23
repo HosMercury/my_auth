@@ -1,11 +1,18 @@
 use askama::Template;
 use askama_axum::IntoResponse;
-use axum::extract::State;
-use axum::middleware;
-use axum::response::Redirect;
-use axum::routing::post;
-use axum::{routing::get, Form, Router};
+use axum::{
+    extract::State,
+    middleware,
+    response::Redirect,
+    routing::{get, post},
+    Form, Router,
+};
+use axum_messages::Messages;
+use std::borrow::Cow;
 use tower_sessions::Session;
+use validator::Validate;
+
+use crate::utils::validation_errs;
 
 use crate::users::{Credentials, PasswordCreds, SignUp, User};
 use crate::{utils, AppState};
@@ -35,7 +42,6 @@ pub fn router() -> Router<AppState> {
 }
 
 mod get {
-
     use super::*;
 
     pub async fn signin() -> SigninTemplate {
@@ -45,24 +51,24 @@ mod get {
         }
     }
 
-    pub async fn signup() -> SignupTemplate {
+    pub async fn signup(messages: Messages) -> SignupTemplate {
+        let messages = messages
+            .into_iter()
+            .map(|message| format!("{}: {}", message.level, message))
+            .collect::<Vec<_>>();
+
         SignupTemplate {
             title: "Sign up",
-            messages: None,
+            messages: Some(messages),
         }
     }
 }
 
 mod post {
-    use axum_messages::Messages;
-    use validator::Validate;
-
-    use crate::utils::validation_errs;
-
     use super::*;
 
     pub async fn signup(
-        messages: Messages,
+        mut messages: Messages,
         State(AppState { db, .. }): State<AppState>,
         Form(signup_data): Form<SignUp>,
     ) -> impl IntoResponse {
@@ -71,8 +77,18 @@ mod post {
                 // save user to db
                 Redirect::to("/")
             }
-            Err(er) => {
-                println!("{:#?}", validation_errs(er));
+            Err(errs) => {
+                validation_errs(errs).iter().for_each(|(_, err_value)| {
+                    let m = err_value
+                        .clone()
+                        .message
+                        .unwrap_or(Cow::Borrowed("Unknown validation error"));
+
+                    // you just clone messages for each iteration of the loop
+                    messages = messages.clone().error(m.to_string());
+                });
+
+                println!("{:#?}", messages.clone());
                 Redirect::to("/signup")
             }
         }

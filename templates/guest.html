@@ -18,7 +18,18 @@
 </head>
 
 <body class="bg-gray-400 font-primary">
-  {# flash messages #}
+  <div class="flex justify-items-center w-full content-center	">
+    {% match messages %}
+    {% when Some with (msgs) %}
+    <div class="border mx-auto w-1/2 bg-red-600 p-1 text-white">
+      {% for msg in msgs %}
+      {{ msg }}
+      <br />
+      {% endfor %}
+    </div>
+    {% when None %}
+    {% endmatch %}
+  </div>
   <div id="content" class="flex justify-center items-center min-h-screen">
     {% block content %}
     {% endblock %}
