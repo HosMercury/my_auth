@@ -13,7 +13,7 @@ use regex::Regex;
 use sqlx::{query, Pool, Postgres};
 use std::collections::HashMap;
 use tower_sessions::Session;
-use validator::{ValidationError, ValidationErrorsKind};
+use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////// Validators //////////////////////////////////
@@ -72,6 +72,62 @@ pub fn extract_errors(
         }
     }
     extracted_errs
+}
+
+pub fn pretty_print(e: &ValidationErrors, depth: usize) {
+    match format_args!("{:1$}", "", depth * 2) {
+        indent => {
+            e.errors().iter().for_each(|(field_name, error_kind)| {
+                print!("{indent}{field_name}: ");
+                match error_kind {
+                    ValidationErrorsKind::Field(error_messages) => {
+                        println!("[");
+                        error_messages
+                            .iter()
+                            .for_each(|m| println!("{indent}  {m},"));
+                        println!("{indent}],");
+                    }
+                    ValidationErrorsKind::Struct(nested) => {
+                        println!("{{");
+                        pretty_print(nested, depth + 1);
+                        println!("{indent}}},");
+                    }
+                    ValidationErrorsKind::List(sub_array) => {
+                        println!("{{");
+                        sub_array.iter().for_each(|(i, nested)| {
+                            println!("{indent}  [{i}]: {{");
+                            pretty_print(nested, depth + 2);
+                            println!("{indent}  }},");
+                        });
+                        println!("{indent}}},");
+                    }
+                }
+            });
+        }
+    }
+}
+
+pub fn validation_errs(e: ValidationErrors) -> HashMap<String, ValidationError> {
+    let mut errors: HashMap<String, ValidationError> = HashMap::new();
+
+    e.errors()
+        .iter()
+        .for_each(|(field_name, error_kind)| match error_kind {
+            ValidationErrorsKind::Field(error_messages) => {
+                error_messages.iter().for_each(|error| {
+                    errors.insert(field_name.to_string(), error.clone());
+                })
+            }
+            ValidationErrorsKind::Struct(errors) => {
+                validation_errs(*errors.clone());
+            }
+            ValidationErrorsKind::List(errors) => {
+                errors.clone().iter().for_each(|(_, errors)| {
+                    validation_errs(*errors.clone());
+                });
+            }
+        });
+    errors
 }
 
 ////////////////////////////////////////////////////////////////////////

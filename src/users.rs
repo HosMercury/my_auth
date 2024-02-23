@@ -1,5 +1,5 @@
 use crate::{
-    utils::{email_exists, username_exists, validate_password, REGEX_USERNAME},
+    utils::{validate_password, REGEX_USERNAME},
     web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY},
 };
 use axum::http::header::{AUTHORIZATION, USER_AGENT};

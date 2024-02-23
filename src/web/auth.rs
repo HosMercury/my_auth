@@ -57,9 +57,7 @@ mod post {
     use axum_messages::Messages;
     use validator::Validate;
 
-    use crate::utils::extract_errors;
-
-    use self::utils::username_exists;
+    use crate::utils::validation_errs;
 
     use super::*;
 
@@ -70,23 +68,13 @@ mod post {
     ) -> impl IntoResponse {
         match signup_data.validate() {
             Ok(_) => {
-                // save to db
+                // save user to db
                 Redirect::to("/")
             }
-            Err(_) => {
-                messages
-                    .clone()
-                    .into_iter()
-                    .for_each(|msg| println!("{}", msg));
-
-                if username_exists(signup_data.username, &db).await {
-                    messages.error("Username is already taken");
-
-                    Redirect::to("/signup")
-                } else {
-                    Redirect::to("/")
-                }
-            } //
+            Err(er) => {
+                println!("{:#?}", validation_errs(er));
+                Redirect::to("/signup")
+            }
         }
     }
 
