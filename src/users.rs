@@ -23,6 +23,7 @@ pub struct AuthUser {
 }
 
 impl AuthUser {
+    #[allow(unused)]
     pub async fn is_authenticated(&self, session: Session) -> bool {
         session
             .get::<AuthUser>(USER_SESSION_KEY)
@@ -104,8 +105,6 @@ pub struct PasswordCreds {
         )
     )]
     pub password: String,
-
-    pub next: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -118,33 +117,33 @@ pub struct OAuthCreds {
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct SignUp {
     #[validate(
-        length(min = 4, message = "Name must be greater than 4 chars"),
         regex(
             path = "REGEX_USERNAME",
             message = "Name must be alphanumeric and/or dashes only"
-        )
+        ),
+        length(min = 4, message = "Name must be greater than 4 chars")
     )]
     pub name: String,
 
     #[validate(
-        length(min = 4, message = "Username must be greater than 4 chars"),
         regex(
             path = "REGEX_USERNAME",
             message = "Username must be alphanumeric and/or dashes only"
-        )
+        ),
+        length(min = 4, message = "Username must be greater than 4 chars")
     )]
     pub username: String,
 
     #[validate(
-        length(min = 4, message = "Password must be more than 4 letters"),
         custom(
             function = "validate_password",
-            message = "Password must be 4-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji"
-        )
+            message = "Password must be 4-50 characters long, contain Capital letter and numbers, and must not contain spaces, special characters, or emoji"
+        ),
+        length(min = 4, message = "Password must be more than 4 letters")
     )]
     pub password: String,
 
-    #[validate(must_match(other = "password", message = "passwords are not identical"))]
+    #[validate(must_match(other = "password", message = "Passwords are not identical"))]
     pub password2: String,
 }
 
@@ -186,7 +185,6 @@ impl User {
                         .map_err(AuthError::Sqlx)?;
 
                 // Verifying the password is blocking and potentially slow, so we'll do so via
-                // `spawn_blocking`.
                 let user_result = task::spawn_blocking(|| {
                     // We're using password-based authentication: this works by comparing our form
                     // input with an argon2 password hash.

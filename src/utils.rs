@@ -8,10 +8,11 @@ use axum::{
     response::Redirect,
     response::Response,
 };
+use axum_messages::Messages;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sqlx::{query, Pool, Postgres};
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 use tower_sessions::Session;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
@@ -41,6 +42,7 @@ pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     }
 }
 
+#[allow(unused)]
 pub async fn username_exists(username: String, pool: &Pool<Postgres>) -> bool {
     query!("SELECT username FROM users WHERE username = $1", username)
         .fetch_one(pool)
@@ -48,6 +50,7 @@ pub async fn username_exists(username: String, pool: &Pool<Postgres>) -> bool {
         .is_ok()
 }
 
+#[allow(unused)]
 pub async fn email_exists(email: &str, pool: &Pool<Postgres>) -> bool {
     query!("SELECT email FROM users WHERE email = $1", email)
         .fetch_one(pool)
@@ -55,6 +58,7 @@ pub async fn email_exists(email: &str, pool: &Pool<Postgres>) -> bool {
         .is_ok()
 }
 
+#[allow(unused)]
 pub fn extract_errors(
     errors: HashMap<&'static str, ValidationErrorsKind>,
 ) -> HashMap<String, String> {
@@ -74,6 +78,7 @@ pub fn extract_errors(
     extracted_errs
 }
 
+#[allow(unused)]
 pub fn pretty_print(e: &ValidationErrors, depth: usize) {
     match format_args!("{:1$}", "", depth * 2) {
         indent => {
@@ -130,6 +135,17 @@ pub fn validation_errs(e: ValidationErrors) -> HashMap<String, ValidationError> 
     errors
 }
 
+pub async fn flash_errors(errs: ValidationErrors, messages: Messages) {
+    validation_errs(errs).iter().for_each(|(_, err_value)| {
+        let m = err_value
+            .clone()
+            .message
+            .unwrap_or(Cow::Borrowed("Unknown validation error"));
+
+        // you just clone messages for each iteration of the loop
+        messages.clone().error(m.to_string());
+    });
+}
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////// Midlewares //////////////////////////////////
 pub async fn auth_middlware(session: Session, request: Request, next: Next) -> Response {

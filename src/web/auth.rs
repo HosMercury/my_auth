@@ -1,3 +1,6 @@
+use crate::users::AuthUser;
+use crate::users::{Credentials, PasswordCreds, SignUp, User};
+use crate::{utils, AppState};
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{
@@ -8,14 +11,10 @@ use axum::{
     Form, Router,
 };
 use axum_messages::Messages;
-use std::borrow::Cow;
+use password_auth::generate_hash;
+use sqlx::query;
 use tower_sessions::Session;
 use validator::Validate;
-
-use crate::utils::validation_errs;
-
-use crate::users::{Credentials, PasswordCreds, SignUp, User};
-use crate::{utils, AppState};
 
 pub const USER_SESSION_KEY: &str = "user";
 
@@ -52,10 +51,13 @@ mod get {
     }
 
     pub async fn signup(messages: Messages) -> SignupTemplate {
+        // Should be separate function
         let messages = messages
             .into_iter()
-            .map(|message| format!("{}: {}", message.level, message))
+            .map(|message| format!("{}", message))
             .collect::<Vec<_>>();
+
+        println!("{:?}", messages);
 
         SignupTemplate {
             title: "Sign up",
@@ -65,30 +67,73 @@ mod get {
 }
 
 mod post {
+    use self::utils::{flash_errors, username_exists};
     use super::*;
+    use validator::ValidationError;
 
     pub async fn signup(
-        mut messages: Messages,
+        messages: Messages,
+        session: Session,
         State(AppState { db, .. }): State<AppState>,
-        Form(signup_data): Form<SignUp>,
-    ) -> impl IntoResponse {
-        match signup_data.validate() {
+        Form(data): Form<SignUp>,
+    ) -> Redirect {
+        match data.validate() {
             Ok(_) => {
-                // save user to db
-                Redirect::to("/")
+                let hashed_password = generate_hash(data.password);
+
+                let result = query!(
+                    r#"
+                        INSERT INTO users (name, username, password)
+                        VALUES ($1, $2, $3)
+                        RETURNING username
+                    "#,
+                    data.name,
+                    data.username.clone(),
+                    hashed_password
+                )
+                .fetch_one(&db)
+                .await;
+
+                match result {
+                    Ok(user) => {
+                        let res =
+                            query!("SELECT name FROM users WHERE username = $1", user.username)
+                                .fetch_one(&db)
+                                .await;
+
+                        match res {
+                            Ok(r) => {
+                                session
+                                    .insert(USER_SESSION_KEY, AuthUser { name: r.name })
+                                    .await
+                                    .expect("session failed to insert user name");
+
+                                Redirect::to("/")
+                            }
+                            Err(_) => Redirect::to("/signup"),
+                        }
+                    }
+                    Err(e) => {
+                        // must be deleted
+                        println!("{}", e);
+                        Redirect::to("/signup")
+                    }
+                }
             }
-            Err(errs) => {
-                validation_errs(errs).iter().for_each(|(_, err_value)| {
-                    let m = err_value
-                        .clone()
-                        .message
-                        .unwrap_or(Cow::Borrowed("Unknown validation error"));
-
-                    // you just clone messages for each iteration of the loop
-                    messages = messages.clone().error(m.to_string());
-                });
-
-                println!("{:#?}", messages.clone());
+            Err(mut errs) => {
+                if username_exists(data.username.clone(), &db).await {
+                    errs.add(
+                        "exists",
+                        ValidationError {
+                            code: "username".into(),
+                            message: Some("Username already exists".into()),
+                            params: [("username".into(), data.username.into())]
+                                .into_iter()
+                                .collect(),
+                        },
+                    )
+                }
+                flash_errors(errs, messages).await;
                 Redirect::to("/signup")
             }
         }

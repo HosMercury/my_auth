@@ -6,24 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
   <link rel="stylesheet" href="assets/output.css" type="text/css">
-
   <title>
     {% block title %}
     {{ title }} | Multi Auth
     {% endblock %}
   </title>
-
-  {% block head %}
-  {% endblock %}
 </head>
 
 <body class="bg-gray-400 font-primary">
-  <div class="flex justify-items-center w-full content-center	">
+  <div class="flex justify-items-center w-full content-center">
     {% match messages %}
     {% when Some with (msgs) %}
-    <div class="border mx-auto w-1/2 bg-red-600 p-1 text-white">
+    <div class="mx-auto w-1/2 bg-red-600 text-white border rounded-xl p-1">
       {% for msg in msgs %}
-      {{ msg }}
+      <p class="">
+        {{ msg }}
+      </p>
       <br />
       {% endfor %}
     </div>
