@@ -13,25 +13,28 @@
   </title>
 </head>
 
-<body class="bg-gray-400 font-primary">
-  <div class="flex justify-items-center w-full content-center">
-    {% match messages %}
-    {% when Some with (msgs) %}
-    <div class="mx-auto w-1/2 bg-red-600 text-white border rounded-xl p-1">
-      {% for msg in msgs %}
-      <p class="">
-        {{ msg }}
-      </p>
-      <br />
-      {% endfor %}
-    </div>
-    {% when None %}
-    {% endmatch %}
-  </div>
-  <div id="content" class="flex justify-center items-center min-h-screen">
-    {% block content %}
-    {% endblock %}
-  </div>
-</body>
+<body class="bg-gray-200 font-primary">
+  <div class="flex flex-col justify-items-center items-center mt-12">
 
+    <div class="w-1/2">
+      {% match messages %}
+      {% when Some with (msgs) %}
+      <div class="bg-red-500 text-white border border-red-700 p-1 rounded-xl">
+        {% for msg in msgs %}
+        <p class="">{{ msg }}</p>
+        <br />
+        {% endfor %}
+      </div>
+      {% when None %}
+      {% endmatch %} 
+    </div>
+
+    <div class="w-1/2 mt-1">
+      {% block content %}
+      {% endblock %}
+    </div>
+
+  </div>
+
+</body>
 </html>

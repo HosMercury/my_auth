@@ -69,6 +69,7 @@ mod get {
 mod post {
     use self::utils::{flash_errors, username_exists};
     use super::*;
+    use tokio::task;
     use validator::ValidationError;
 
     pub async fn signup(
@@ -79,7 +80,9 @@ mod post {
     ) -> Redirect {
         match data.validate() {
             Ok(_) => {
-                let hashed_password = generate_hash(data.password);
+                let hashed_password = task::spawn_blocking(|| generate_hash(data.password))
+                    .await
+                    .unwrap();
 
                 let result = query!(
                     r#"
