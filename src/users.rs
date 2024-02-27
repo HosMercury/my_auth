@@ -88,22 +88,7 @@ pub enum Credentials {
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct PasswordCreds {
-    #[validate(
-        length(min = 4, message = "Username must be greater than 4 chars"),
-        regex(
-            path = "REGEX_USERNAME",
-            message = "Username must be alphanumeric and/or dashes only"
-        )
-    )]
     pub username: String,
-
-    #[validate(
-        length(min = 4, message = "Password must be at least 8 letters"),
-        custom(
-            function = "validate_password",
-            message = "password must be 8-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji"
-        )
-    )]
     pub password: String,
 }
 
@@ -121,7 +106,8 @@ pub struct SignUp {
             path = "REGEX_NAME",
             message = "Name must be alphabetic and could contain space only"
         ),
-        length(min = 6, message = "Name must be at least 6 chars")
+        length(min = 6, message = "Name must be at least 6 chars"),
+        length(max = 50, message = "Name must not exceed 50 chars")
     )]
     pub name: String,
 
@@ -130,7 +116,8 @@ pub struct SignUp {
             path = "REGEX_USERNAME",
             message = "Username must be alphanumeric and/or dashes 0r underscore only"
         ),
-        length(min = 8, message = "Username must be  at least 8 chars")
+        length(min = 8, message = "Username must be  at least 8 chars"),
+        length(max = 50, message = "Username must not exceed 50 chars")
     )]
     pub username: String,
 
@@ -139,7 +126,8 @@ pub struct SignUp {
             function = "validate_password",
             message = "Username must be at least than 8 characters and must contain only letters, digits, dash and/or underscore"
         ),
-        length(min = 8, message = "Password must be at least 8 characters")
+        length(min = 8, message = "Password must be at least 8 characters"),
+        length(max = 500, message = "Password must not exceed 500 chars")
     )]
     pub password: String,
 

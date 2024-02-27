@@ -36,7 +36,7 @@ pub fn validate_password(password: &str) -> Result<(), ValidationError> {
         has_digit |= c.is_ascii_digit();
     }
 
-    if !has_whitespace && has_upper && has_lower && has_digit && password.len() >= 8 {
+    if !has_whitespace && has_upper && has_lower && has_digit {
         Ok(())
     } else {
         Err(ValidationError::new("Password Validation Failed"))

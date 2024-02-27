@@ -2,8 +2,10 @@
 <div class="bg-white text-center border rounded-xl shadow-md mt-10 p-2">
   <form method="post" action="/signin" class="my-4 p-2">
     <fieldset>
-      <legend class="font-bold my-2 text-xl text-gray-500 mb-4">
-        Please sign in
+      <legend
+        class="font-bold my-2 text-3xl text-gray-500 mb-4 w-full border-b pb-2"
+      >
+        Sign in
       </legend>
       <div class="my-2">
         <label for="username" class="p-2 w-40 inline-block text-right"
@@ -34,22 +36,14 @@
 
     <button
       type="submit"
-      class="bg-gray-500 text-white border rounded-md p-1 my-1 px-2 cursor-pointer"
+      class="bg-gray-500 text-white border rounded-md p-1 my-4 px-4 cursor-pointer"
     >
       Sign in
     </button>
   </form>
   <div class="m-2 mt-3 border-t pt-4">
-    <a
-      href="/google/oauth"
-      class="bg-red-600 text-white border rounded-md roundedmy-4 w-fit text-center p-2 px-2 mx-2"
-    >
-      Sign in with google
-    </a>
-    <a
-      href="/signup"
-      class="bg-gray-700 text-white border rounded-md roundedmy-4 w-fit text-center p-2 px-2"
-    >
+    {% include "partials/google.html" %}
+    <a href="/signup" class="underline text-gray-800 m-4 w-fit text-center p-2">
       Sign Up
     </a>
   </div>

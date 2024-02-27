@@ -9,10 +9,10 @@
   </head>
 
   <body class="bg-gray-200 font-primary">
-    <div class="flex flex-col justify-items-center items-center mt-12">
+    <div class="flex flex-col items-center mt-8">
       <div class="w-1/2">
         {% match messages %} {% when Some with (msgs) %}
-        <div class="bg-red-500 text-white border border-red-700 p-1 rounded-xl">
+        <div class="bg-red-500 text-white border border-red-700 p-2 rounded-xl">
           {% for msg in msgs %}
           <p class="">{{ msg }}</p>
           <br />
@@ -20,7 +20,6 @@
         </div>
         {% when None %} {% endmatch %}
       </div>
-
       <div class="w-1/2 mt-1">{% block content %} {% endblock %}</div>
     </div>
   </body>

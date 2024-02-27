@@ -149,8 +149,14 @@ mod post {
     ) -> impl IntoResponse {
         match User::authenticate(Credentials::Password(creds.clone()), db, client, session).await {
             Ok(Some(_)) => Redirect::to("/").into_response(),
-            Ok(None) => Redirect::to("/signin").into_response(),
-            Err(_) => Redirect::to("/signin").into_response(),
+            Ok(None) => {
+                // save msgs -- there is no user
+                Redirect::to("/signin").into_response()
+            }
+            Err(_) => {
+                // save msgs -- there is an err
+                Redirect::to("/signin").into_response()
+            }
         }
     }
 
