@@ -1,40 +1,27 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+    <link rel="stylesheet" href="assets/output.css" type="text/css" />
+    <title>{% block title %} {{ title }} | Multi Auth {% endblock %}</title>
+  </head>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-  <link rel="stylesheet" href="assets/output.css" type="text/css">
-  <title>
-    {% block title %}
-    {{ title }} | Multi Auth
-    {% endblock %}
-  </title>
-</head>
-
-<body class="bg-gray-200 font-primary">
-  <div class="flex flex-col justify-items-center items-center mt-12">
-
-    <div class="w-1/2">
-      {% match messages %}
-      {% when Some with (msgs) %}
-      <div class="bg-red-500 text-white border border-red-700 p-1 rounded-xl">
-        {% for msg in msgs %}
-        <p class="">{{ msg }}</p>
-        <br />
-        {% endfor %}
+  <body class="bg-gray-200 font-primary">
+    <div class="flex flex-col justify-items-center items-center mt-12">
+      <div class="w-1/2">
+        {% match messages %} {% when Some with (msgs) %}
+        <div class="bg-red-500 text-white border border-red-700 p-1 rounded-xl">
+          {% for msg in msgs %}
+          <p class="">{{ msg }}</p>
+          <br />
+          {% endfor %}
+        </div>
+        {% when None %} {% endmatch %}
       </div>
-      {% when None %}
-      {% endmatch %} 
+
+      <div class="w-1/2 mt-1">{% block content %} {% endblock %}</div>
     </div>
-
-    <div class="w-1/2 mt-1">
-      {% block content %}
-      {% endblock %}
-    </div>
-
-  </div>
-
-</body>
+  </body>
 </html>

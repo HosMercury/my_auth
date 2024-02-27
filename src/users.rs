@@ -1,5 +1,5 @@
 use crate::{
-    utils::{validate_password, REGEX_USERNAME},
+    utils::{validate_password, REGEX_NAME, REGEX_USERNAME},
     web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY},
 };
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
@@ -98,10 +98,10 @@ pub struct PasswordCreds {
     pub username: String,
 
     #[validate(
-        length(min = 4, message = "Password must be more than 4 letters"),
+        length(min = 4, message = "Password must be at least 8 letters"),
         custom(
             function = "validate_password",
-            message = "password must be 4-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji"
+            message = "password must be 8-50 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji"
         )
     )]
     pub password: String,
@@ -118,28 +118,28 @@ pub struct OAuthCreds {
 pub struct SignUp {
     #[validate(
         regex(
-            path = "REGEX_USERNAME",
-            message = "Name must be alphanumeric and/or dashes only"
+            path = "REGEX_NAME",
+            message = "Name must be alphabetic and could contain space only"
         ),
-        length(min = 4, message = "Name must be greater than 4 chars")
+        length(min = 6, message = "Name must be at least 6 chars")
     )]
     pub name: String,
 
     #[validate(
         regex(
             path = "REGEX_USERNAME",
-            message = "Username must be alphanumeric and/or dashes only"
+            message = "Username must be alphanumeric and/or dashes 0r underscore only"
         ),
-        length(min = 4, message = "Username must be greater than 4 chars")
+        length(min = 8, message = "Username must be  at least 8 chars")
     )]
     pub username: String,
 
     #[validate(
         custom(
             function = "validate_password",
-            message = "Password must be 4-50 characters long, contain Capital letter and numbers, and must not contain spaces, special characters, or emoji"
+            message = "Username must be at least than 8 characters and must contain only letters, digits, dash and/or underscore"
         ),
-        length(min = 4, message = "Password must be more than 4 letters")
+        length(min = 8, message = "Password must be at least 8 characters")
     )]
     pub password: String,
 
