@@ -8,67 +8,49 @@
         Sign up
       </legend>
       <div class="my-2">
-        <label for="username" class="p-2 w-40 inline-block text-right"
-          >Name</label
-        >
-        <input
-          required
-          name="name"
-          id="name"
-          value="foo"
-          class="border p-1 rounded-md border-gray-300"
-        />
+        <label for="username" class="form-label">Name</label>
+        <input required name="name" id="name" value="foo" class="form-input" />
       </div>
       <div class="my-2">
-        <label for="username" class="p-2 w-40 inline-block text-right"
-          >Username</label
-        >
+        <label for="username" class="form-label">Username</label>
         <input
           required
           name="username"
           id="username"
           value="ferris"
-          class="border p-1 rounded-md border-gray-300"
+          class="form-input"
         />
       </div>
-      <p
-        class="text-xs w-1/2 bg-gray-50 border my-2 mx-auto border-gray-200 p-1 text-gray-700"
-      >
+      <p class="form-hint">
         Username must be at least 8 characters and must contain only letters,
         digits, dash and/or underscore.
       </p>
 
       <div class="my-2">
-        <label for="password" class="p-2 w-40 inline-block text-right"
-          >Password</label
-        >
+        <label for="password" class="form-label">Password</label>
         <input
           required
           name="password"
           id="password"
           type="password"
           value="hunter42H"
-          class="border p-1 rounded-md border-gray-300"
+          class="form-input"
         />
       </div>
       <div class="my-2">
-        <label for="password" class="p-2 w-40 inline-block text-right"
-          >Confirm password</label
-        >
+        <label for="password" class="form-label">Confirm password</label>
         <input
           required
           name="password2"
           id="password2"
           type="password"
           value="hunter42H"
-          class="border p-1 rounded-md border-gray-300"
+          class="form-input"
         />
       </div>
     </fieldset>
 
-    <p
-      class="text-xs w-1/2 bg-gray-50 border my-2 mx-auto border-gray-200 p-1 text-gray-700"
-    >
+    <p class="form-hint">
       Password must be at least 8 characters and must contain at least one
       uppercase , one lowercase letter and at least one digit.
     </p>

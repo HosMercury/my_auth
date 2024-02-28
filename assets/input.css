@@ -3,3 +3,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .form-label {
+    @apply p-2 w-40 inline-block text-right;
+  }
+
+  .form-input {
+    @apply p-1 border-gray-300 bg-gray-50 border-b-2;
+  }
+
+  .form-hint {
+    @apply text-xs w-2/3 mx-auto  text-gray-500 italic;
+  }
+}
