@@ -22,14 +22,14 @@ pub const USER_SESSION_KEY: &str = "user";
 #[template(path = "pages/signin.html")]
 pub struct SigninTemplate {
     pub title: &'static str,
-    pub messages: Option<Vec<String>>,
+    pub messages: Vec<String>,
 }
 
 #[derive(Template)]
 #[template(path = "pages/signup.html")]
 pub struct SignupTemplate {
     pub title: &'static str,
-    pub messages: Option<Vec<String>>,
+    pub messages: Vec<String>,
 }
 
 pub fn router() -> Router<AppState> {
@@ -43,10 +43,15 @@ pub fn router() -> Router<AppState> {
 mod get {
     use super::*;
 
-    pub async fn signin() -> SigninTemplate {
+    pub async fn signin(messages: Messages) -> SigninTemplate {
+        let messages = messages
+            .into_iter()
+            .map(|message| format!("{}", message))
+            .collect::<Vec<_>>();
+
         SigninTemplate {
             title: "Sign in",
-            messages: None,
+            messages,
         }
     }
 
@@ -57,11 +62,9 @@ mod get {
             .map(|message| format!("{}", message))
             .collect::<Vec<_>>();
 
-        println!("{:?}", messages);
-
         SignupTemplate {
             title: "Sign up",
-            messages: Some(messages),
+            messages,
         }
     }
 }
@@ -113,12 +116,14 @@ mod post {
 
                                 Redirect::to("/")
                             }
-                            Err(_) => Redirect::to("/signup"),
+                            Err(_) => {
+                                messages.error("sorry db error happened");
+                                Redirect::to("/signup")
+                            }
                         }
                     }
-                    Err(e) => {
-                        // must be deleted
-                        println!("{}", e);
+                    Err(_) => {
+                        messages.error("sorry system error happened");
                         Redirect::to("/signup")
                     }
                 }
@@ -144,6 +149,7 @@ mod post {
 
     pub async fn password(
         session: Session,
+        messages: Messages,
         State(AppState { db, client }): State<AppState>,
         Form(creds): Form<PasswordCreds>,
     ) -> impl IntoResponse {
@@ -151,6 +157,7 @@ mod post {
             Ok(Some(_)) => Redirect::to("/").into_response(),
             Ok(None) => {
                 // save msgs -- there is no user
+                messages.error("These credentials do not match ours");
                 Redirect::to("/signin").into_response()
             }
             Err(_) => {

@@ -1,5 +1,5 @@
 {% extends "./guest.html" %} {% block content %}
-<div class="bg-white p-2 text-center border rounded-xl shadow-md">
+<div class="bg-white p-2 text-center border shadow-md rounded-xl mt-2">
   <form method="post" action="/signup" class="my-4 p-2">
     <fieldset>
       <legend
@@ -62,9 +62,9 @@
       Sign Up
     </button>
   </form>
-  <div class="m-2 mt-3 border-t pt-4">
+  <div class="m-1 mt-1 border-t pt-1">
     {% include "partials/google.html" %}
-    <a href="/signin" class="underline text-gray-800 m-4 w-fit text-center p-2">
+    <a href="/signin" class="underline text-gray-800 m-1 w-fit text-center p-1">
       Sign in
     </a>
   </div>

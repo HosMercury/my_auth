@@ -9,19 +9,19 @@
     <title>{% block title %} {{ title }} | Multi Auth {% endblock %}</title>
   </head>
 
-  <body class="bg-gray-200 font-primary">
+  <body class="bg-gray-400 font-primary py-8">
     <div class="flex flex-col items-center mt-8">
       <div class="w-1/2">
-        {% match messages %} {% when Some with (msgs) %}
-        <div class="bg-red-500 text-white border border-red-700 p-2 rounded-xl">
-          {% for msg in msgs %}
-          <p class="">{{ msg }}</p>
-          <br />
+        {% if !messages.is_empty() %}
+        <div
+          class="shadow bg-red-500 text-white border border-red-800 p-2 rounded-xl text-center"
+        >
+          {% for message in messages %}
+          <p class="p-1 m-1">{{ message }}</p>
           {% endfor %}
         </div>
-        {% when None %} {% endmatch %}
+        {% endif %} {% block content %} {% endblock %}
       </div>
-      <div class="w-1/2 mt-1">{% block content %} {% endblock %}</div>
     </div>
   </body>
 </html>
