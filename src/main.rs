@@ -86,6 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(middleware::from_fn(utils::auth_middlware))
         .merge(auth::router())
         .merge(oauth::router())
+        .layer(middleware::from_fn(utils::request_inputs_trim))
         .layer(MessagesManagerLayer)
         .layer(session_layer)
         .with_state(state)

@@ -5,8 +5,7 @@ use axum::{
     extract::{FromRequestParts, Request},
     http::request::Parts,
     middleware::Next,
-    response::Redirect,
-    response::Response,
+    response::{Redirect, Response},
 };
 use axum_messages::Messages;
 use lazy_static::lazy_static;
@@ -94,6 +93,7 @@ pub async fn flash_errors(errs: ValidationErrors, messages: Messages) {
         messages.clone().error(m.to_string());
     });
 }
+
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////// Midlewares //////////////////////////////////
 pub async fn auth_middlware(session: Session, request: Request, next: Next) -> Response {
@@ -112,6 +112,11 @@ pub async fn is_authenticated_middlware(
         Some(_) => Redirect::to("/").into_response(),
         None => next.run(request).await,
     }
+}
+
+pub async fn request_inputs_trim(request: Request, next: Next) -> impl IntoResponse {
+    println!("{:#?}", request.extensions());
+    next.run(request).await
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -167,25 +172,17 @@ where
 //                 print!("{indent}{field_name}: ");
 //                 match error_kind {
 //                     ValidationErrorsKind::Field(error_messages) => {
-//                         println!("[");
 //                         error_messages
 //                             .iter()
 //                             .for_each(|m| println!("{indent}  {m},"));
-//                         println!("{indent}],");
 //                     }
 //                     ValidationErrorsKind::Struct(nested) => {
-//                         println!("{{");
 //                         pretty_print(nested, depth + 1);
-//                         println!("{indent}}},");
 //                     }
 //                     ValidationErrorsKind::List(sub_array) => {
-//                         println!("{{");
 //                         sub_array.iter().for_each(|(i, nested)| {
-//                             println!("{indent}  [{i}]: {{");
 //                             pretty_print(nested, depth + 2);
-//                             println!("{indent}  }},");
 //                         });
-//                         println!("{indent}}},");
 //                     }
 //                 }
 //             });
