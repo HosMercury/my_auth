@@ -141,7 +141,7 @@ mod post {
                         },
                     )
                 }
-                flash_errors(errs, messages).await;
+                flash_errors(&errs, messages).await;
                 Redirect::to("/signup")
             }
         }
@@ -161,7 +161,7 @@ mod post {
                 Redirect::to("/signin").into_response()
             }
             Err(_) => {
-                // save msgs -- there is an err
+                messages.error("Errror while authenticating the user");
                 Redirect::to("/signin").into_response()
             }
         }

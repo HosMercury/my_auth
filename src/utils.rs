@@ -11,7 +11,6 @@ use axum_messages::Messages;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sqlx::{query, Pool, Postgres};
-use std::{borrow::Cow, collections::HashMap};
 use tower_sessions::Session;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
@@ -58,44 +57,54 @@ pub async fn email_exists(email: &str, pool: &Pool<Postgres>) -> bool {
         .is_ok()
 }
 
-pub fn validation_errs(e: ValidationErrors) -> HashMap<String, ValidationError> {
-    let mut errors: HashMap<String, ValidationError> = HashMap::new();
+pub fn validation_errs<'a>(
+    e: &'a ValidationErrors,
+    new_errors: &'a mut ValidationErrors,
+) -> &'a ValidationErrors {
+    e.errors().into_iter().for_each(|(field, kind)| match kind {
+        ValidationErrorsKind::Struct(errors) => {
+            // println!("inside STRUCT errs {:#?}", errors);
+            validation_errs(&*errors, new_errors);
+        }
+        ValidationErrorsKind::List(errors) => {
+            errors.clone().iter().for_each(|(_, errs)| {
+                validation_errs(&*errs, new_errors);
+            });
+        }
+        ValidationErrorsKind::Field(errors) => {
+            errors.into_iter().for_each(|error| {
+                new_errors.add(field, error.clone());
+            });
+        }
+    });
 
-    e.errors()
-        .iter()
-        .for_each(|(field_name, error_kind)| match error_kind {
-            ValidationErrorsKind::Field(error_messages) => {
-                error_messages.iter().for_each(|error| {
-                    errors.insert(field_name.to_string(), error.clone());
-                })
-            }
-            ValidationErrorsKind::Struct(errors) => {
-                validation_errs(*errors.clone());
-            }
-            ValidationErrorsKind::List(errors) => {
-                errors.clone().iter().for_each(|(_, errors)| {
-                    validation_errs(*errors.clone());
-                });
-            }
-        });
-    errors
+    new_errors
 }
 
-pub async fn flash_errors(errs: ValidationErrors, messages: Messages) {
-    // calling validation errors to extract nested errs
-    validation_errs(errs).iter().for_each(|(_, err_value)| {
-        let m = err_value
-            .clone()
-            .message
-            .unwrap_or(Cow::Borrowed("Unknown validation error"));
-
-        // you just clone messages for each iteration of the loop
-        messages.clone().error(m.to_string());
-    });
+pub async fn flash_errors(errs: &ValidationErrors, messages: Messages) {
+    let mut new_errs = ValidationErrors::new();
+    validation_errs(&errs, &mut new_errs)
+        .errors()
+        .into_iter()
+        .for_each(|(_, kind)| match kind {
+            ValidationErrorsKind::Field(errs) => errs.iter().for_each(|e| {
+                let m = &e.message;
+                match m {
+                    Some(mes) => {
+                        messages.clone().error(mes.as_ref());
+                    }
+                    None => {
+                        messages.clone().error("Unkwon validation error");
+                    }
+                }
+            }),
+            _ => (),
+        });
 }
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////// Midlewares //////////////////////////////////
+#[allow(unused)]
 pub async fn auth_middlware(session: Session, request: Request, next: Next) -> Response {
     match session.get::<AuthUser>(USER_SESSION_KEY).await.unwrap() {
         Some(_) => next.run(request).await,
@@ -115,7 +124,7 @@ pub async fn is_authenticated_middlware(
 }
 
 pub async fn request_inputs_trim(request: Request, next: Next) -> impl IntoResponse {
-    println!("{:#?}", request.extensions());
+    // println!("{:#?}", request.extensions());
     next.run(request).await
 }
 
@@ -164,28 +173,28 @@ where
 //     extracted_errs
 // }
 
-// #[allow(unused)]
-// pub fn pretty_print(e: &ValidationErrors, depth: usize) {
-//     match format_args!("{:1$}", "", depth * 2) {
-//         indent => {
-//             e.errors().iter().for_each(|(field_name, error_kind)| {
-//                 print!("{indent}{field_name}: ");
-//                 match error_kind {
-//                     ValidationErrorsKind::Field(error_messages) => {
-//                         error_messages
-//                             .iter()
-//                             .for_each(|m| println!("{indent}  {m},"));
-//                     }
-//                     ValidationErrorsKind::Struct(nested) => {
-//                         pretty_print(nested, depth + 1);
-//                     }
-//                     ValidationErrorsKind::List(sub_array) => {
-//                         sub_array.iter().for_each(|(i, nested)| {
-//                             pretty_print(nested, depth + 2);
-//                         });
-//                     }
-//                 }
-//             });
-//         }
-//     }
-// }
+#[allow(unused)]
+pub fn pretty_print(e: &ValidationErrors, depth: usize) {
+    match format_args!("{:1$}", "", depth * 2) {
+        indent => {
+            e.errors().iter().for_each(|(field_name, error_kind)| {
+                print!("{indent}{field_name}: ");
+                match error_kind {
+                    ValidationErrorsKind::Field(error_messages) => {
+                        error_messages
+                            .iter()
+                            .for_each(|m| println!("{indent}  {m},"));
+                    }
+                    ValidationErrorsKind::Struct(nested) => {
+                        pretty_print(nested, depth + 1);
+                    }
+                    ValidationErrorsKind::List(sub_array) => {
+                        sub_array.iter().for_each(|(i, nested)| {
+                            pretty_print(nested, depth + 2);
+                        });
+                    }
+                }
+            });
+        }
+    }
+}

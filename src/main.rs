@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = dashboard::router()
         // no need for middleware bc extractor do the same thing
         // but it is still here for just in case or other need for other projs
-        .layer(middleware::from_fn(utils::auth_middlware))
+        // .layer(middleware::from_fn(utils::auth_middlware))
         .merge(auth::router())
         .merge(oauth::router())
         .layer(middleware::from_fn(utils::request_inputs_trim))
