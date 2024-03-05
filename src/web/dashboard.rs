@@ -1,5 +1,4 @@
-use crate::utils::validation_errs;
-use crate::{users::AuthUser, AppState};
+use crate::{users::AuthUser, utils::flash_errors, AppState};
 use askama::Template;
 use axum::{
     routing::{get, post},
@@ -7,7 +6,7 @@ use axum::{
 };
 use axum_messages::Messages;
 use serde::{Deserialize, Serialize};
-use validator::{Validate, ValidationErrors};
+use validator::Validate;
 
 #[derive(Template)]
 #[template(path = "pages/dashboard.html")]
@@ -61,21 +60,16 @@ pub struct Book {
     #[validate(length(min = 100, message = "Name must be at least 10 characters"))]
     book_name: String,
 
-    #[validate(range(min = 2000, message = "version not valid"))]
+    #[validate(range(min = 12, message = "version not valid"))]
     version: u8,
 }
 
 // #[debug_handler]
-pub async fn jese(_: Messages, Json(payload): Json<MyUser>) -> Json<MyUser> {
-    let res = payload.validate();
-    let mut new_errs = ValidationErrors::new();
-
-    match res {
+pub async fn jese(messages: Messages, Json(payload): Json<MyUser>) -> Json<MyUser> {
+    match payload.validate() {
         Ok(res) => println!("res {:?}", res),
         Err(errs) => {
-            // flash_errors(errs, messages).await;
-            let e = validation_errs(&errs, &mut new_errs);
-            println!("{:#?}", e);
+            flash_errors(errs, messages).await;
         }
     }
 

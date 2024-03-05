@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{users::AuthUser, web::auth::USER_SESSION_KEY};
 use askama_axum::IntoResponse;
 use axum::{
@@ -8,19 +10,12 @@ use axum::{
     response::{Redirect, Response},
 };
 use axum_messages::Messages;
-use lazy_static::lazy_static;
-use regex::Regex;
 use sqlx::{query, Pool, Postgres};
 use tower_sessions::Session;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////// Validators //////////////////////////////////
-lazy_static! {
-    pub static ref REGEX_NAME: Regex = Regex::new(r"^[a-zA-Z]{3,}[a-zA-Z0-9 ]{3,50}$").unwrap();
-    pub static ref REGEX_USERNAME: Regex = Regex::new(r"^[a-zA-Z0-9_-]{8,50}$").unwrap();
-}
-
 pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     let mut has_whitespace = false;
     let mut has_upper = false;
@@ -57,22 +52,21 @@ pub async fn email_exists(email: &str, pool: &Pool<Postgres>) -> bool {
         .is_ok()
 }
 
-pub fn validation_errs<'a>(
+pub fn flatten_validation_errs<'a>(
     e: &'a ValidationErrors,
     new_errors: &'a mut ValidationErrors,
 ) -> &'a ValidationErrors {
     e.errors().into_iter().for_each(|(field, kind)| match kind {
         ValidationErrorsKind::Struct(errors) => {
-            // println!("inside STRUCT errs {:#?}", errors);
-            validation_errs(&*errors, new_errors);
+            flatten_validation_errs(&*errors, new_errors);
         }
-        ValidationErrorsKind::List(errors) => {
-            errors.clone().iter().for_each(|(_, errs)| {
-                validation_errs(&*errs, new_errors);
+        ValidationErrorsKind::List(errors_list) => {
+            errors_list.clone().into_iter().for_each(|(_, errors)| {
+                flatten_validation_errs(&*errors, new_errors);
             });
         }
         ValidationErrorsKind::Field(errors) => {
-            errors.into_iter().for_each(|error| {
+            errors.into_iter().enumerate().for_each(|(_, error)| {
                 new_errors.add(field, error.clone());
             });
         }
@@ -81,24 +75,26 @@ pub fn validation_errs<'a>(
     new_errors
 }
 
-pub async fn flash_errors(errs: &ValidationErrors, messages: Messages) {
+#[allow(unused)]
+pub async fn json_validatio_errors(errs: &mut ValidationErrors) {
     let mut new_errs = ValidationErrors::new();
-    validation_errs(&errs, &mut new_errs)
-        .errors()
+    let flattened_errs = flatten_validation_errs(errs, &mut new_errs);
+
+    let s = format!("{:#?}", flattened_errs);
+
+    println!("flat {}", s);
+}
+
+pub async fn flash_errors(errs: ValidationErrors, _: Messages) {
+    let mut new_errs = ValidationErrors::new();
+
+    flatten_validation_errs(&errs, &mut new_errs)
+        .field_errors()
         .into_iter()
-        .for_each(|(_, kind)| match kind {
-            ValidationErrorsKind::Field(errs) => errs.iter().for_each(|e| {
-                let m = &e.message;
-                match m {
-                    Some(mes) => {
-                        messages.clone().error(mes.as_ref());
-                    }
-                    None => {
-                        messages.clone().error("Unkwon validation error");
-                    }
-                }
-            }),
-            _ => (),
+        .for_each(|(field, errs)| {
+            errs.into_iter().for_each(|e| {
+                println!("{:#?} - {}", field, e.message.clone().unwrap());
+            })
         });
 }
 
@@ -153,25 +149,25 @@ where
     }
 }
 
-// #[allow(unused)]
-// pub fn extract_errors(
-//     errors: HashMap<&'static str, ValidationErrorsKind>,
-// ) -> HashMap<String, String> {
-//     let mut extracted_errs: HashMap<String, String> = HashMap::new();
-//     for (k, v) in errors {
-//         match v {
-//             ValidationErrorsKind::Struct(_) => {} // todo
-//             ValidationErrorsKind::List(_) => {}   // todo
-//             ValidationErrorsKind::Field(errs) => {
-//                 for err in errs {
-//                     let msg = err.message.as_ref().unwrap();
-//                     extracted_errs.insert(k.to_string(), msg.to_string());
-//                 }
-//             }
-//         }
-//     }
-//     extracted_errs
-// }
+#[allow(unused)]
+pub fn extract_errors(
+    errors: HashMap<&'static str, ValidationErrorsKind>,
+) -> HashMap<String, String> {
+    let mut extracted_errs: HashMap<String, String> = HashMap::new();
+    for (k, v) in errors {
+        match v {
+            ValidationErrorsKind::Struct(_) => {} // todo
+            ValidationErrorsKind::List(_) => {}   // todo
+            ValidationErrorsKind::Field(errs) => {
+                for err in errs {
+                    let msg = err.message.as_ref().unwrap();
+                    extracted_errs.insert(k.to_string(), msg.to_string());
+                }
+            }
+        }
+    }
+    extracted_errs
+}
 
 #[allow(unused)]
 pub fn pretty_print(e: &ValidationErrors, depth: usize) {

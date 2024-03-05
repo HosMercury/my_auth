@@ -1,14 +1,16 @@
 use crate::{
-    utils::{validate_password, REGEX_NAME, REGEX_USERNAME},
+    utils::validate_password,
     web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY},
 };
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
+use lazy_static::lazy_static;
 use oauth2::{
     basic::{BasicClient, BasicRequestTokenError},
     reqwest::{async_http_client, AsyncHttpClientError},
     AuthorizationCode, CsrfToken, Scope, TokenResponse,
 };
 use password_auth::verify_password;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::{query_as, FromRow, PgPool};
 use time::OffsetDateTime;
@@ -16,6 +18,11 @@ use tokio::task;
 use tower_sessions::Session;
 use uuid::Uuid;
 use validator::Validate;
+
+lazy_static! {
+    pub static ref REGEX_NAME: Regex = Regex::new(r"^[a-zA-Z]{3,}[a-zA-Z0-9 ]{3,50}$").unwrap();
+    pub static ref REGEX_USERNAME: Regex = Regex::new(r"^[a-zA-Z0-9_-]{8,50}$").unwrap();
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct AuthUser {
@@ -86,7 +93,7 @@ pub enum Credentials {
     OAuth(OAuthCreds),
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PasswordCreds {
     pub username: String,
     pub password: String,

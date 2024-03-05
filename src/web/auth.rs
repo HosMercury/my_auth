@@ -131,7 +131,7 @@ mod post {
             Err(mut errs) => {
                 if username_exists(data.username.clone(), &db).await {
                     errs.add(
-                        "exists",
+                        "username", // field name
                         ValidationError {
                             code: "username".into(),
                             message: Some("Username already exists".into()),
@@ -141,7 +141,7 @@ mod post {
                         },
                     )
                 }
-                flash_errors(&errs, messages).await;
+                flash_errors(errs, messages).await;
                 Redirect::to("/signup")
             }
         }
