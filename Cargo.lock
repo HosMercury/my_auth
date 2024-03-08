@@ -1606,6 +1606,7 @@ dependencies = [
  "tower-sessions",
  "tower-sessions-redis-store",
  "tracing-subscriber",
+ "unicode-segmentation",
  "uuid",
  "validator",
 ]

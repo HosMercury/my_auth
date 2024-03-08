@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use crate::{users::AuthUser, web::auth::USER_SESSION_KEY};
 use askama_axum::IntoResponse;
@@ -56,19 +56,22 @@ pub fn flatten_validation_errs<'a>(
     e: &'a ValidationErrors,
     new_errors: &'a mut ValidationErrors,
 ) -> &'a ValidationErrors {
-    e.errors().into_iter().for_each(|(field, kind)| match kind {
-        ValidationErrorsKind::Struct(errors) => {
-            flatten_validation_errs(&*errors, new_errors);
-        }
-        ValidationErrorsKind::List(errors_list) => {
-            errors_list.clone().into_iter().for_each(|(_, errors)| {
+    e.errors().into_iter().for_each(|(field, kind)| {
+        // println!("{}", field);
+        match kind {
+            ValidationErrorsKind::Struct(errors) => {
                 flatten_validation_errs(&*errors, new_errors);
-            });
-        }
-        ValidationErrorsKind::Field(errors) => {
-            errors.into_iter().enumerate().for_each(|(_, error)| {
-                new_errors.add(field, error.clone());
-            });
+            }
+            ValidationErrorsKind::List(errors_list) => {
+                errors_list.clone().into_iter().for_each(|(_, errors)| {
+                    flatten_validation_errs(&*errors, new_errors);
+                });
+            }
+            ValidationErrorsKind::Field(errors) => {
+                errors.into_iter().enumerate().for_each(|(_, error)| {
+                    new_errors.add(field, error.clone());
+                });
+            }
         }
     });
 
@@ -76,16 +79,28 @@ pub fn flatten_validation_errs<'a>(
 }
 
 #[allow(unused)]
-pub async fn json_validatio_errors(errs: &mut ValidationErrors) {
+pub async fn json_validatio_errors(errs: ValidationErrors) {
     let mut new_errs = ValidationErrors::new();
-    let flattened_errs = flatten_validation_errs(errs, &mut new_errs);
 
-    let s = format!("{:#?}", flattened_errs);
+    let mut new_m: Vec<String> = Vec::new();
 
-    println!("flat {}", s);
+    let errs = flatten_validation_errs(&errs, &mut new_errs)
+        .field_errors()
+        .into_iter()
+        .for_each(|(_, errs)| {
+            errs.iter().for_each(|e| {
+                let m = format!(
+                    "{}",
+                    e.message
+                        .clone()
+                        .unwrap_or(Cow::Borrowed("No valdation error message provided"))
+                );
+                new_m.push(m);
+            })
+        });
 }
 
-pub async fn flash_errors(errs: ValidationErrors, _: Messages) {
+pub async fn flash_errors(errs: ValidationErrors, messages: Messages) {
     let mut new_errs = ValidationErrors::new();
 
     flatten_validation_errs(&errs, &mut new_errs)
@@ -93,9 +108,13 @@ pub async fn flash_errors(errs: ValidationErrors, _: Messages) {
         .into_iter()
         .for_each(|(field, errs)| {
             errs.into_iter().for_each(|e| {
-                println!("{:#?} - {}", field, e.message.clone().unwrap());
+                let ms = messages.clone();
+                // println!("{:#?} - {}", field, e.message.clone().unwrap());
+                ms.error(format!("{} - {}", field, e.message.clone().unwrap()));
             })
         });
+
+    println!("mmm {:?}", messages);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -149,6 +168,9 @@ where
     }
 }
 
+//////////////////////////////////////////////////////////////////////
+////////////////////////////// Drafts - Not used ////////////////////////////////
+
 #[allow(unused)]
 pub fn extract_errors(
     errors: HashMap<&'static str, ValidationErrorsKind>,
@@ -173,9 +195,9 @@ pub fn extract_errors(
 pub fn pretty_print(e: &ValidationErrors, depth: usize) {
     match format_args!("{:1$}", "", depth * 2) {
         indent => {
-            e.errors().iter().for_each(|(field_name, error_kind)| {
-                print!("{indent}{field_name}: ");
-                match error_kind {
+            e.errors()
+                .iter()
+                .for_each(|(field_name, error_kind)| match error_kind {
                     ValidationErrorsKind::Field(error_messages) => {
                         error_messages
                             .iter()
@@ -189,8 +211,7 @@ pub fn pretty_print(e: &ValidationErrors, depth: usize) {
                             pretty_print(nested, depth + 2);
                         });
                     }
-                }
-            });
+                });
         }
     }
 }
