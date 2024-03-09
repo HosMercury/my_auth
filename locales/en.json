@@ -1,9 +1,27 @@
 {
   "_version": 1,
   "hello": "Hello world",
+  "age": "age",
+  "name": "name",
+  "username": "username",
+  "version": "version",
+  "password": "password",
+  "password_validation_messages": "Password must be at least 8 characters and must contain at least one uppercase , one lowercase letter and at least one digit .",
+  "username_validation_messages": "Username must be at least 8 characters and must contain only letters, digits, dash and/or underscore .",
+  "sign_in": "sign in",
+  "sign_google": "sign in with google",
+  "sign_up": "sign up",
+  "sign_out": "sign out",
+  "confirm_password": "confirm password",
+  "dashboard": "Dashboard",
+  "rights_reserved": " All rights reserved",
+  "send": "Send",
   "errors": {
-    "required": "The %{field} field is required.",
-    "min_length": "The %{field} field must be at least %{min} characters long.",
-    "max_length": "The %{field} field must not exceed %{max} characters."
+    "required": "The %{field} field is required .",
+    "min_length": "The %{field} field must be at least %{min} characters long .",
+    "max_length": "The %{field} field must not exceed %{max} characters .",
+    "range": "The %{field} field mustbe between %{min} and %{max} .",
+    "username_exists": "Username already exists",
+    "system_error": "System error"
   }
 }

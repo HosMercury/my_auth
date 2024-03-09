@@ -123,12 +123,48 @@ pub async fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String>
 
     errors.into_iter().for_each(|(field, errs)| {
         errs.into_iter().for_each(|e| {
-            e.clone().params.into_iter().for_each(|(k, v)| {
-                if e.code == "length" && k == "min" {
-                    let locale = t!("errors.min_length", field = field, min = v);
-                    extracted_errors.insert(field, locale.to_string());
+            // println!("params {:?}", e.clone().params["min"]);
+            //let params = e.clone().params;
+            // println!("{:?}", e.clone().params);
+            match e.code.as_ref() {
+                "min_length" => {
+                    extracted_errors.insert(
+                        field,
+                        t!(
+                            "errors.min_length",
+                            field = t!(field),
+                            min = e.params["min"]
+                        )
+                        .to_string(),
+                    );
                 }
-            });
+                "max_length" => {
+                    extracted_errors.insert(
+                        field,
+                        t!(
+                            "errors.max_length",
+                            field = t!(field),
+                            max = e.params["max"]
+                        )
+                        .to_string(),
+                    );
+                }
+                "range" => {
+                    extracted_errors.insert(
+                        field,
+                        t!(
+                            "errors.range",
+                            field = t!(field),
+                            min = e.params["min"],
+                            max = e.params["max"]
+                        )
+                        .to_string(),
+                    );
+                }
+                _ => {
+                    extracted_errors.insert(field, "this field is not valid".to_string());
+                }
+            }
         })
     });
 

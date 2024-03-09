@@ -1,9 +1,27 @@
 {
   "_version": 1,
   "hello": "مرحبا بالعالم",
+  "age": "العمر",
+  "name": "الإسم",
+  "username": "إسم المستخدم",
+  "version": "الإصدار",
+  "password": "كلمة السر",
+  "password_validation_messages": "كلمة السر يجب أن تكون بالإنجليزية ولا تقل عن ٨ حروف وبها حرف كبير وحرف صغير ورقم",
+  "username_validation_messages": "إسم المستخدم يجب أن يكون بالإنجليزية ويحتوي فقط علي حروف أو أرقام أو علامة - أو علامة ـ",
+  "sign_in": "تسجيل الدخول",
+  "sign_google": "تسجيل دخول جوجل",
+  "sign_up": "تسجيل مستخدم",
+  "sign_out": "تسجيل خروج",
+  "confirm_password": "إعادة إدخال كلمة السر",
+  "dashboard": "الرئيسية",
+  "rights_reserved": "جميع الحقوق محفوظة",
+  "send": "إرسال",
   "errors": {
-    "required": "خانة %{field} مطلوبة.",
-    "min_length": "خانة %{field} لا يجب أن تقل عن %{min} حروف.",
-    "max_length": "خانة %{field} لا يجب أن تتعدي عن %{max} حروف."
+    "required": "خانة %{field} مطلوبة .",
+    "min_length": "خانة %{field} لا يجب أن تقل عن %{min} حروف .",
+    "max_length": "خانة %{field} لا يجب أن تتعدي عن %{max} حروف .",
+    "range": "خانة %{field} يجب أن تكون بين %{min}  m %{max} .",
+    "username_exists": "هذا الإسم مسجل مسبقا",
+    "system_error": "خطأ بالنظام"
   }
 }

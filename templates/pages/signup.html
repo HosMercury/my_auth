@@ -5,14 +5,14 @@
       <legend
         class="font-bold my-2 text-3xl text-gray-500 mb-4 w-full border-b pb-2"
       >
-        Sign up
+        {{ t!("sign_up") }}
       </legend>
       <div class="my-2">
-        <label for="username" class="form-label">Name</label>
+        <label for="username" class="form-label">{{ t!("name") }}</label>
         <input required name="name" id="name" value="foo" class="form-input" />
       </div>
       <div class="my-2">
-        <label for="username" class="form-label">Username</label>
+        <label for="username" class="form-label">{{ t!("username") }}</label>
         <input
           required
           name="username"
@@ -21,13 +21,10 @@
           class="form-input"
         />
       </div>
-      <p class="form-hint">
-        Username must be at least 8 characters and must contain only letters,
-        digits, dash and/or underscore.
-      </p>
+      <p class="form-hint">{{ t!("username_validation_messages") }}</p>
 
       <div class="my-2">
-        <label for="password" class="form-label">Password</label>
+        <label for="password" class="form-label">{{ t!("password") }}</label>
         <input
           required
           name="password"
@@ -38,7 +35,9 @@
         />
       </div>
       <div class="my-2">
-        <label for="password" class="form-label">Confirm password</label>
+        <label for="password" class="form-label"
+          >{{ t!("confirm_password") }}</label
+        >
         <input
           required
           name="password2"
@@ -50,22 +49,19 @@
       </div>
     </fieldset>
 
-    <p class="form-hint">
-      Password must be at least 8 characters and must contain at least one
-      uppercase , one lowercase letter and at least one digit.
-    </p>
+    <p class="form-hint">{{ t!("password_validation_messages") }}</p>
 
     <button
       type="submit"
       class="bg-gray-500 text-white border rounded-md p-1 my-2 px-4 cursor-pointer"
     >
-      Sign Up
+      {{ t!("send") }}
     </button>
   </form>
   <div class="m-1 mt-1 border-t pt-1">
     {% include "partials/google.html" %}
     <a href="/signin" class="underline text-gray-800 m-1 w-fit text-center p-1">
-      Sign in
+      {{ t!("sign_in") }}
     </a>
   </div>
 </div>

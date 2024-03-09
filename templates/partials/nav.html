@@ -7,7 +7,7 @@
     >
     <ul class="">
       <li class="">
-        <a class="h-full" href="/">Dashboard</a>
+        <a class="h-full" href="/">{{ t!("dashboard") }}</a>
       </li>
     </ul>
   </div>
@@ -16,7 +16,7 @@
   >
     <p class="">{{ username }}</p>
     <form action="/signout" method="post" class="bg-gray-600 px-4 h-full">
-      <button class="h-full" type="submit">Sign out</button>
+      <button class="h-full" type="submit">{{ t!("sign_out") }}</button>
     </form>
   </div>
 </nav>

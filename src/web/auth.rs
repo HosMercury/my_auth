@@ -21,14 +21,14 @@ pub const USER_SESSION_KEY: &str = "user";
 #[derive(Template)]
 #[template(path = "pages/signin.html")]
 pub struct SigninTemplate {
-    pub title: &'static str,
+    pub title: String,
     pub messages: Vec<String>,
 }
 
 #[derive(Template)]
 #[template(path = "pages/signup.html")]
 pub struct SignupTemplate {
-    pub title: &'static str,
+    pub title: String,
     pub messages: Vec<String>,
 }
 
@@ -50,7 +50,7 @@ mod get {
             .collect::<Vec<_>>();
 
         SigninTemplate {
-            title: "Sign in",
+            title: t!("sign_in").to_string(),
             messages,
         }
     }
@@ -63,7 +63,7 @@ mod get {
             .collect::<Vec<_>>();
 
         SignupTemplate {
-            title: "Sign up",
+            title: t!("sign_up").to_string(),
             messages,
         }
     }
@@ -117,13 +117,13 @@ mod post {
                                 Redirect::to("/")
                             }
                             Err(_) => {
-                                messages.error("sorry db error happened");
+                                messages.error(t!("system_error"));
                                 Redirect::to("/signup")
                             }
                         }
                     }
                     Err(_) => {
-                        messages.error("sorry system error happened");
+                        messages.error(t!("system_error"));
                         Redirect::to("/signup")
                     }
                 }
@@ -134,7 +134,7 @@ mod post {
                         "username", // field name
                         ValidationError {
                             code: "username".into(),
-                            message: Some("Username already exists".into()),
+                            message: Some(t!("username_exists").into()),
                             params: [("username".into(), data.username.into())]
                                 .into_iter()
                                 .collect(),
@@ -161,7 +161,7 @@ mod post {
                 Redirect::to("/signin").into_response()
             }
             Err(_) => {
-                messages.error("Errror while authenticating the user");
+                messages.error(t!("system_error"));
                 Redirect::to("/signin").into_response()
             }
         }

@@ -1,21 +1,11 @@
-use crate::{
-    users::AuthUser,
-    utils::{flatten_validation_errs, json_validatio_errors, validation_errors},
-    AppState,
-};
+use crate::{users::AuthUser, AppState};
 use askama::Template;
-use axum::{
-    routing::{get, post},
-    Json, Router,
-};
-use axum_messages::Messages;
-use serde::{Deserialize, Serialize};
-use validator::{Validate, ValidationErrors};
+use axum::{routing::get, Router};
 
 #[derive(Template)]
 #[template(path = "pages/dashboard.html")]
 pub struct DashboardTemplate {
-    pub title: &'static str,
+    pub title: String,
     pub messages: Option<Vec<String>>,
     pub username: String,
 }
@@ -24,7 +14,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(self::get::dashboard))
         .route("/t", get(self::get::test))
-        .route("/jese", post(jese))
+    //.route("/jese", post(jese))
 }
 
 mod get {
@@ -34,7 +24,7 @@ mod get {
     // #[axum::debug_handler]
     pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
         DashboardTemplate {
-            title: "Dashboard",
+            title: t!("dashboard").to_string(),
             messages: None,
             username: user.name,
         }
@@ -42,80 +32,78 @@ mod get {
 
     pub async fn test(user: AuthUser) -> DashboardTemplate {
         DashboardTemplate {
-            title: "Dashboard",
+            title: t!("dashboard").to_string(),
             messages: None,
             username: user.name,
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Validate)]
-pub struct MyUser {
-    #[validate(length(min = 100))]
-    name: String,
+// #[derive(Serialize, Deserialize, Validate)]
+// pub struct MyUser {
+//     #[validate(length(code = "min_length", min = 100))]
+//     name: String,
 
-    #[validate(range(min = 18, max = 20))]
-    age: u8,
+//     #[validate(range(min = 18, max = 20))]
+//     age: u8,
 
-    // #[validate]
-    books: Vec<Book>,
-}
+//     // #[validate]
+//     books: Vec<Book>,
+// }
 
-#[derive(Serialize, Deserialize, Validate)]
-pub struct Book {
-    #[validate(length(min = 100))]
-    name: String,
+// #[derive(Serialize, Deserialize, Validate)]
+// pub struct Book {
+//     #[validate(length(code = "min_length", min = 100))]
+//     name: String,
 
-    #[validate(range(min = 12))]
-    version: u8,
-}
+//     #[validate(range(min = 12))]
+//     version: u8,
+// }
 
 // #[debug_handler]
-pub async fn jese(_: Messages, Json(mut payload): Json<MyUser>) -> Json<MyUser> {
-    rust_i18n::set_locale("ar");
+// pub async fn jese(_: Messages, Json(mut payload): Json<MyUser>) -> Json<MyUser> {
+//     rust_i18n::set_locale("ar");
 
-    match payload.validate() {
-        Ok(res) => println!("res {:?}", res),
-        Err(errs) => {
-            let errs = validation_errors(&errs).await;
-            println!("jese validation errs \n{:#?}", errs);
-        }
-    }
+//     match payload.validate() {
+//         Ok(res) => println!("res {:?}", res),
+//         Err(errs) => {
+//             let errs = validation_errors(&errs).await;
+//             println!("JESE validation errs \n{:#?}", errs);
+//         }
+//     }
 
-    // Trimming
-    payload.name = payload.name.trim().to_string();
-    payload.books.iter_mut().for_each(|book| {
-        book.name = book.name.trim().to_string();
-    });
+//     // Trimming
+//     payload.name = payload.name.trim().to_string();
+//     payload.books.iter_mut().for_each(|book| {
+//         book.name = book.name.trim().to_string();
+//     });
 
-    // println!("{}", t!("errors.min_length", field = "username", min = 8));
+//     // validation
+//     let mut errs: ValidationErrors = ValidationErrors::new();
 
-    // validation
-    let mut errs: ValidationErrors = ValidationErrors::new();
+//     // validation of My user struct
+//     match payload.validate() {
+//         Ok(_) => todo!(),
+//         Err(ـ) => {
+//             //println!("{}", err);
+//         }
+//     }
 
-    // validation of My user struct
-    match payload.validate() {
-        Ok(_) => todo!(),
-        Err(err) => {
-            //println!("{}", err);
-        }
-    }
+//     // validation of -- Books Vec
+//     for (i, book) in payload.books.iter().enumerate() {
+//         match book.validate() {
+//             Ok(_) => todo!(),
+//             Err(errors) => {
+//                 let errors = flatten_validation_errs(&errors, &mut errs);
 
-    // validation of -- Books Vec
-    for (i, book) in payload.books.iter().enumerate() {
-        match book.validate() {
-            Ok(_) => todo!(),
-            Err(errors) => {
-                let errors = flatten_validation_errs(&errors, &mut errs);
+//                 for (field, errs) in errors.field_errors().into_iter() {
+//                     errs.iter().for_each(|e| {
+//                         // println!("{:?}", e.params);
+//                     });
+//                 }
+//             }
+//         }
+//     }
 
-                for (field, errs) in errors.field_errors().into_iter() {
-                    errs.iter().for_each(|e| {
-                        // println!("{:?}", e.params);
-                    });
-                }
-            }
-        }
-    }
-
-    Json(payload)
-}
+//     Json(payload)
+// }
