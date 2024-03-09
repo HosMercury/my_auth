@@ -1,0 +1,9 @@
+{
+  "_version": 1,
+  "hello": "مرحبا بالعالم",
+  "errors": {
+    "required": "خانة %{field} مطلوبة.",
+    "min_length": "خانة %{field} لا يجب أن تقل عن %{min} حروف.",
+    "max_length": "خانة %{field} لا يجب أن تتعدي عن %{max} حروف."
+  }
+}

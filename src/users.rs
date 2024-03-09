@@ -46,6 +46,7 @@ pub struct User {
     pub name: String,
     pub username: Option<String>,
     pub email: Option<String>,
+    pub locale: String,
 
     #[serde(skip_serializing)]
     pub password: Option<String>,
@@ -76,6 +77,7 @@ impl std::fmt::Debug for User {
             .field("name", &self.name)
             .field("username", &self.username)
             .field("email", &self.email)
+            .field("locale", &self.locale)
             .field("created_at", &self.created_at)
             .field("updated_at", &self.updated_at)
             .field("updated_at", &self.deleted_at)

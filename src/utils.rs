@@ -114,7 +114,25 @@ pub async fn flash_errors(errs: ValidationErrors, messages: Messages) {
             })
         });
 
-    println!("mmm {:?}", messages);
+    // println!("mmm {:?}", messages);
+}
+
+pub async fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String> {
+    let errors = errs.field_errors();
+    let mut extracted_errors: HashMap<&str, String> = HashMap::new();
+
+    errors.into_iter().for_each(|(field, errs)| {
+        errs.into_iter().for_each(|e| {
+            e.clone().params.into_iter().for_each(|(k, v)| {
+                if e.code == "length" && k == "min" {
+                    let locale = t!("errors.min_length", field = field, min = v);
+                    extracted_errors.insert(field, locale.to_string());
+                }
+            });
+        })
+    });
+
+    extracted_errors
 }
 
 ////////////////////////////////////////////////////////////////////////

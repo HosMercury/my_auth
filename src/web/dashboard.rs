@@ -1,4 +1,8 @@
-use crate::{users::AuthUser, utils::json_validatio_errors, AppState};
+use crate::{
+    users::AuthUser,
+    utils::{flatten_validation_errs, json_validatio_errors, validation_errors},
+    AppState,
+};
 use askama::Template;
 use axum::{
     routing::{get, post},
@@ -47,7 +51,7 @@ mod get {
 
 #[derive(Serialize, Deserialize, Validate)]
 pub struct MyUser {
-    #[validate(length(min = 100, message = "Name must be at least 10 characters"))]
+    #[validate(length(min = 100))]
     name: String,
 
     #[validate(range(min = 18, max = 20))]
@@ -59,19 +63,22 @@ pub struct MyUser {
 
 #[derive(Serialize, Deserialize, Validate)]
 pub struct Book {
-    #[validate(length(min = 100, message = "Name must be at least 10 characters"))]
+    #[validate(length(min = 100))]
     name: String,
 
-    #[validate(range(min = 12, message = "version not valid"))]
+    #[validate(range(min = 12))]
     version: u8,
 }
 
 // #[debug_handler]
-pub async fn jese(_: Messages, Json(mut payload): Json<MyUser>) {
+pub async fn jese(_: Messages, Json(mut payload): Json<MyUser>) -> Json<MyUser> {
+    rust_i18n::set_locale("ar");
+
     match payload.validate() {
         Ok(res) => println!("res {:?}", res),
         Err(errs) => {
-            json_validatio_errors(errs).await;
+            let errs = validation_errors(&errs).await;
+            println!("jese validation errs \n{:#?}", errs);
         }
     }
 
@@ -81,23 +88,34 @@ pub async fn jese(_: Messages, Json(mut payload): Json<MyUser>) {
         book.name = book.name.trim().to_string();
     });
 
+    // println!("{}", t!("errors.min_length", field = "username", min = 8));
+
     // validation
-    let errs: ValidationErrors = ValidationErrors::new();
+    let mut errs: ValidationErrors = ValidationErrors::new();
 
     // validation of My user struct
     match payload.validate() {
         Ok(_) => todo!(),
-        Err(err) => println!("payload err \n{}", err),
+        Err(err) => {
+            //println!("{}", err);
+        }
     }
 
     // validation of -- Books Vec
     for (i, book) in payload.books.iter().enumerate() {
-        println!("book after trim {}", book.name);
         match book.validate() {
             Ok(_) => todo!(),
-            Err(err) => println!("book -{} : {}", i + 1, err),
+            Err(errors) => {
+                let errors = flatten_validation_errs(&errors, &mut errs);
+
+                for (field, errs) in errors.field_errors().into_iter() {
+                    errs.iter().for_each(|e| {
+                        // println!("{:?}", e.params);
+                    });
+                }
+            }
         }
     }
 
-    //Json(payload)
+    Json(payload)
 }

@@ -14,6 +14,10 @@ use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use web::{auth, dashboard, oauth};
 
+#[macro_use]
+extern crate rust_i18n;
+i18n!("locales", fallback = "en");
+
 #[derive(Clone)]
 struct AppState {
     db: PgPool,
@@ -30,6 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .try_init()?;
 
     dotenvy::dotenv()?;
+    // rust_i18n::set_locale("en");
 
     //////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////// OAuth ///////////////////////////////////////////

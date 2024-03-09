@@ -1,0 +1,9 @@
+{
+  "_version": 1,
+  "hello": "Hello world",
+  "errors": {
+    "required": "The %{field} field is required.",
+    "min_length": "The %{field} field must be at least %{min} characters long.",
+    "max_length": "The %{field} field must not exceed %{max} characters."
+  }
+}

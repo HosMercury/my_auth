@@ -1,5 +1,8 @@
 {
   "rust-analyzer.linkedProjects": [
     "./Cargo.toml"
+  ],
+  "i18n-ally.localesPaths": [
+    "locales"
   ]
 }
