@@ -9,12 +9,19 @@
     <title>{% block title %} {{ title }} | Multi Auth {% endblock %}</title>
   </head>
 
-  <body class="bg-gray-400 font-primary py-8">
+  <body class="bg-gray-400 font-primary">
     <div class="flex flex-col items-center mt-8">
-      <div class="w-1/2 absolute top-0 mt-2">
+      <div class="bg-white text-center border shadow-md rounded-xl w-1/2 mt-20">
+        <div class="flex justify-center">
+          <div
+            class="p-6 text-xl text-black bg-white rounded-xl absolute -top-4 shadow-xl"
+          >
+            <p>Multi Auth</p>
+          </div>
+        </div>
         {% if !messages.is_empty() %}
         <div
-          class="shadow bg-red-500 text-white border border-red-800 p-2 text-center rounded-lg"
+          class="shadow bg-red-500 text-white border border-red-800 text-center rounded-lg"
         >
           {% for message in messages %}
           <p class="p-1 m-1">{{ message }}</p>
@@ -22,12 +29,17 @@
         </div>
         {% endif %}
 
-        <div class="bg-white text-center border shadow-md p-2 rounded-xl mt-8">
-          <div class="flex justify-center">
-            <a href="?locale=en">En</a>
-          </div>
-          {% block content %} {% endblock %}
+        <div class="absolute px-2 m-4 rounded-xl bg-gray-300 border-2">
+          <a
+            id="locale"
+            class="align-left"
+            href='?locale={% if locale == "en" %}{{ "ar" }}{% else %}{{ "en" }}{% endif %}'
+          >
+            {% if locale == "en" %}عربي{% else %}EN{% endif %}
+          </a>
         </div>
+
+        {% block content %} {% endblock %}
       </div>
     </div>
   </body>

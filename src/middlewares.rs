@@ -23,7 +23,7 @@ pub async fn is_authenticated(session: Session, request: Request, next: Next) ->
     }
 }
 
-/////////////////////////////////////  Locale  ///////////////////////////////////
+/////////////////////  Locale  //////////////////
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Locale {
@@ -36,10 +36,12 @@ struct LocaleQuery {
     locale: Locale,
 }
 
-pub async fn locale(session: Session, request: Request, next: Next) -> Response {
-    let query = Query::<LocaleQuery>::try_from_uri(request.uri());
+const LOCALE_SESSION_KEY: &str = "locale";
 
-    match query {
+pub async fn locale(session: Session, request: Request, next: Next) -> Response {
+    let locale_query = Query::<LocaleQuery>::try_from_uri(request.uri());
+
+    match locale_query {
         Ok(q) => {
             let path = request.uri().path();
 
@@ -51,12 +53,20 @@ pub async fn locale(session: Session, request: Request, next: Next) -> Response 
             rust_i18n::set_locale(locale_str);
 
             session
-                .insert("locale", locale_str)
+                .insert(LOCALE_SESSION_KEY, locale_str)
                 .await
                 .expect("session failed to insert locale");
 
             Redirect::to(path).into_response()
         }
-        Err(_) => next.run(request).await,
+        Err(_) => {
+            match session.get::<String>(LOCALE_SESSION_KEY).await.unwrap() {
+                Some(locale) => {
+                    rust_i18n::set_locale(locale.as_ref());
+                }
+                None => (),
+            }
+            next.run(request).await
+        }
     }
 }

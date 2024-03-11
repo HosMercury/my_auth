@@ -12,6 +12,7 @@ use axum::{
 };
 use axum_messages::Messages;
 use password_auth::generate_hash;
+use rust_i18n::locale;
 use sqlx::query;
 use tower_sessions::Session;
 use validator::Validate;
@@ -23,6 +24,7 @@ pub const USER_SESSION_KEY: &str = "user";
 pub struct SigninTemplate {
     pub title: String,
     pub messages: Vec<String>,
+    locale: String,
 }
 
 #[derive(Template)]
@@ -30,6 +32,7 @@ pub struct SigninTemplate {
 pub struct SignupTemplate {
     pub title: String,
     pub messages: Vec<String>,
+    locale: String,
 }
 
 pub fn router() -> Router<AppState> {
@@ -52,6 +55,7 @@ mod get {
         SigninTemplate {
             title: t!("sign_in").to_string(),
             messages,
+            locale: locale().to_string(),
         }
     }
 
@@ -65,6 +69,7 @@ mod get {
         SignupTemplate {
             title: t!("sign_up").to_string(),
             messages,
+            locale: locale().to_string(),
         }
     }
 }

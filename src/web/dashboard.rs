@@ -1,6 +1,7 @@
 use crate::{users::AuthUser, AppState};
 use askama::Template;
 use axum::{routing::get, Router};
+use rust_i18n::locale;
 
 #[derive(Template)]
 #[template(path = "pages/dashboard.html")]
@@ -8,6 +9,23 @@ pub struct DashboardTemplate {
     pub title: String,
     pub messages: Option<Vec<String>>,
     pub username: String,
+    pub locale: String,
+}
+
+impl DashboardTemplate {
+    pub async fn new(
+        title: String,
+        messages: Option<Vec<String>>,
+        username: String,
+        locale: String,
+    ) -> Self {
+        DashboardTemplate {
+            title: t!(&title).to_string(),
+            messages,
+            username,
+            locale,
+        }
+    }
 }
 
 pub fn router() -> Router<AppState> {
@@ -22,19 +40,23 @@ pub mod get {
 
     // #[axum::debug_handler]
     pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
-        DashboardTemplate {
-            title: t!("dashboard").to_string(),
-            messages: None,
-            username: user.name,
-        }
+        DashboardTemplate::new(
+            "dashboard".to_owned(),
+            None,
+            user.name,
+            locale().to_string(),
+        )
+        .await
     }
 
     pub async fn test(user: AuthUser) -> DashboardTemplate {
-        DashboardTemplate {
-            title: t!("dashboard").to_string(),
-            messages: None,
-            username: user.name,
-        }
+        DashboardTemplate::new(
+            "dashboard".to_owned(),
+            None,
+            user.name,
+            locale().to_string(),
+        )
+        .await
     }
 }
 
