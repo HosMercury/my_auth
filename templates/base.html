@@ -12,6 +12,9 @@
   <body class="bg-white font-primary">
     {% include "partials/nav.html" %}
     <div id="content" class="min-h-screen w-full p-4">
+      <div class="flex justify-center">
+        <a href="?locale=en">En</a>
+      </div>
       {% block content %} {% endblock %}
     </div>
     <footer

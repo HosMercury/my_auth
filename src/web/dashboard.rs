@@ -17,8 +17,7 @@ pub fn router() -> Router<AppState> {
     //.route("/jese", post(jese))
 }
 
-mod get {
-
+pub mod get {
     use super::*;
 
     // #[axum::debug_handler]

@@ -1,16 +1,16 @@
-use std::{borrow::Cow, collections::HashMap};
-
 use crate::{users::AuthUser, web::auth::USER_SESSION_KEY};
 use askama_axum::IntoResponse;
 use axum::{
     async_trait,
-    extract::{FromRequestParts, Request},
-    http::request::Parts,
+    extract::{FromRequestParts, Query, Request},
+    http::{request::Parts, Uri},
     middleware::Next,
     response::{Redirect, Response},
 };
 use axum_messages::Messages;
+use serde::{Deserialize, Serialize};
 use sqlx::{query, Pool, Postgres};
+use std::{borrow::Cow, collections::HashMap};
 use tower_sessions::Session;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
@@ -192,9 +192,46 @@ pub async fn is_authenticated_middlware(
     }
 }
 
-pub async fn request_inputs_trim(request: Request, next: Next) -> impl IntoResponse {
-    // println!("{:#?}", request.extensions());
-    next.run(request).await
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Locale {
+    En,
+    Ar,
+}
+
+#[derive(Serialize, Deserialize)]
+struct LocaleQuery {
+    locale: Locale,
+}
+
+pub async fn locale_middlware(session: Session, request: Request, next: Next) -> Response {
+    let query = Query::<LocaleQuery>::try_from_uri(request.uri());
+
+    match query {
+        Ok(q) => {
+            let path = request.uri().path();
+
+            // parse to prevent anybody trying to manipulate the path
+            // if path.parse::<Uri>().is_err() {
+            //     return Redirect::to("/").into_response();
+            // }
+
+            let locale_str = match q.0.locale {
+                Locale::En => "en",
+                Locale::Ar => "ar",
+            };
+
+            rust_i18n::set_locale(locale_str);
+
+            session
+                .insert("locale", locale_str)
+                .await
+                .expect("session failed to insert locale");
+
+            Redirect::to(path).into_response()
+        }
+        Err(_) => next.run(request).await,
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

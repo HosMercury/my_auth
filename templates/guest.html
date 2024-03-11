@@ -20,7 +20,14 @@
           <p class="p-1 m-1">{{ message }}</p>
           {% endfor %}
         </div>
-        {% endif %} {% block content %} {% endblock %}
+        {% endif %}
+
+        <div class="bg-white text-center border shadow-md p-2 rounded-xl mt-8">
+          <div class="flex justify-center">
+            <a href="?locale=en">En</a>
+          </div>
+          {% block content %} {% endblock %}
+        </div>
       </div>
     </div>
   </body>

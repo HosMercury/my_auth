@@ -34,10 +34,10 @@ pub struct SignupTemplate {
 
 pub fn router() -> Router<AppState> {
     Router::new()
+        .route("/signout", post(self::post::signout))
+        .layer(middleware::from_fn(utils::auth_middlware))
         .route("/signup", get(self::get::signup).post(self::post::signup))
         .route("/signin", get(self::get::signin).post(self::post::password))
-        .layer(middleware::from_fn(utils::is_authenticated_middlware))
-        .route("/signout", post(self::post::signout))
 }
 
 mod get {
