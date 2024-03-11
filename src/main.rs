@@ -1,5 +1,7 @@
+mod extractors;
+mod middlewares;
 mod users;
-mod utils;
+mod validations;
 mod web;
 
 use axum::middleware;
@@ -88,10 +90,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = dashboard::router()
         // no need for middleware bc extractor do the same thing
         // but it is still here for just in case or other need for other projs
-        .layer(middleware::from_fn(utils::auth_middlware))
+        .layer(middleware::from_fn(middlewares::auth))
         .merge(auth::router())
         .merge(oauth::router())
-        .layer(middleware::from_fn(utils::locale_middlware))
+        .layer(middleware::from_fn(middlewares::locale))
         .layer(MessagesManagerLayer)
         .layer(session_layer)
         .with_state(state)

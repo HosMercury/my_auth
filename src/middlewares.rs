@@ -1,0 +1,62 @@
+use crate::{users::AuthUser, web::auth::USER_SESSION_KEY};
+use askama_axum::IntoResponse;
+use axum::{
+    extract::{Query, Request},
+    middleware::Next,
+    response::{Redirect, Response},
+};
+use serde::{Deserialize, Serialize};
+use tower_sessions::Session;
+
+pub async fn auth(session: Session, request: Request, next: Next) -> Response {
+    match session.get::<AuthUser>(USER_SESSION_KEY).await.unwrap() {
+        Some(_) => next.run(request).await,
+        None => Redirect::to("/signin").into_response(),
+    }
+}
+
+#[allow(unused)]
+pub async fn is_authenticated(session: Session, request: Request, next: Next) -> Response {
+    match session.get::<AuthUser>(USER_SESSION_KEY).await.unwrap() {
+        Some(_) => Redirect::to("/").into_response(),
+        None => next.run(request).await,
+    }
+}
+
+/////////////////////////////////////  Locale  ///////////////////////////////////
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Locale {
+    En,
+    Ar,
+}
+
+#[derive(Serialize, Deserialize)]
+struct LocaleQuery {
+    locale: Locale,
+}
+
+pub async fn locale(session: Session, request: Request, next: Next) -> Response {
+    let query = Query::<LocaleQuery>::try_from_uri(request.uri());
+
+    match query {
+        Ok(q) => {
+            let path = request.uri().path();
+
+            let locale_str = match q.0.locale {
+                Locale::En => "en",
+                Locale::Ar => "ar",
+            };
+
+            rust_i18n::set_locale(locale_str);
+
+            session
+                .insert("locale", locale_str)
+                .await
+                .expect("session failed to insert locale");
+
+            Redirect::to(path).into_response()
+        }
+        Err(_) => next.run(request).await,
+    }
+}

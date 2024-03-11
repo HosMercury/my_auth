@@ -1,6 +1,6 @@
 use crate::users::AuthUser;
 use crate::users::{Credentials, PasswordCreds, SignUp, User};
-use crate::{utils, AppState};
+use crate::{middlewares, validations, AppState};
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{
@@ -35,7 +35,7 @@ pub struct SignupTemplate {
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/signout", post(self::post::signout))
-        .layer(middleware::from_fn(utils::auth_middlware))
+        .layer(middleware::from_fn(middlewares::auth))
         .route("/signup", get(self::get::signup).post(self::post::signup))
         .route("/signin", get(self::get::signin).post(self::post::password))
 }
@@ -70,7 +70,7 @@ mod get {
 }
 
 mod post {
-    use self::utils::{flash_errors, username_exists};
+    use self::validations::{flash_errors, username_exists};
     use super::*;
     use tokio::task;
     use validator::ValidationError;
@@ -102,15 +102,23 @@ mod post {
 
                 match result {
                     Ok(user) => {
-                        let res =
-                            query!("SELECT name FROM users WHERE username = $1", user.username)
-                                .fetch_one(&db)
-                                .await;
+                        let res = query!(
+                            "SELECT id,name FROM users WHERE username = $1",
+                            user.username
+                        )
+                        .fetch_one(&db)
+                        .await;
 
                         match res {
                             Ok(r) => {
                                 session
-                                    .insert(USER_SESSION_KEY, AuthUser { name: r.name })
+                                    .insert(
+                                        USER_SESSION_KEY,
+                                        AuthUser {
+                                            id: r.id,
+                                            name: r.name,
+                                        },
+                                    )
                                     .await
                                     .expect("session failed to insert user name");
 

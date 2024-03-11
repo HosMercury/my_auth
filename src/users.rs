@@ -1,7 +1,4 @@
-use crate::{
-    utils::validate_password,
-    web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY},
-};
+use crate::{validations, web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY}};
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
 use lazy_static::lazy_static;
 use oauth2::{
@@ -17,6 +14,7 @@ use time::OffsetDateTime;
 use tokio::task;
 use tower_sessions::Session;
 use uuid::Uuid;
+use validations::validate_password;
 use validator::Validate;
 
 lazy_static! {
@@ -26,6 +24,7 @@ lazy_static! {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct AuthUser {
+    pub id: Uuid,
     pub name: String,
 }
 
@@ -202,6 +201,7 @@ impl User {
                                 .insert(
                                     USER_SESSION_KEY,
                                     AuthUser {
+                                        id: user.id.clone(),
                                         name: user.name.clone(),
                                     },
                                 )
@@ -265,6 +265,7 @@ impl User {
                     .insert(
                         USER_SESSION_KEY,
                         AuthUser {
+                            id: user.id.clone(),
                             name: user.name.clone(),
                         },
                     )
