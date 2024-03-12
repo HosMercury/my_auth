@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS users (
         username TEXT UNIQUE,
         email TEXT UNIQUE,
         password TEXT,
-        locale TEXT DEFAULT 'en',
         access_token TEXT,
         refresh_token TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

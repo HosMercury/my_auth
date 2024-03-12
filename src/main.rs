@@ -35,6 +35,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .try_init()?;
 
+    // tracing_subscriber::registry()
+    //     .with(
+    //         tracing_subscriber::EnvFilter::try_from_default_env()
+    //             .unwrap_or_else(|_| "tower_http=debug,axum::rejection=trace".into()),
+    //     )
+    //     .with(tracing_subscriber::fmt::layer())
+    //     .init();
+
     dotenvy::dotenv()?;
     // rust_i18n::set_locale("ar");
 

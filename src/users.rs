@@ -1,4 +1,7 @@
-use crate::{validations, web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY}};
+use crate::{
+    validations,
+    web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY},
+};
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
 use lazy_static::lazy_static;
 use oauth2::{
@@ -9,6 +12,7 @@ use oauth2::{
 use password_auth::verify_password;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_trim::*;
 use sqlx::{query_as, FromRow, PgPool};
 use time::OffsetDateTime;
 use tokio::task;
@@ -45,7 +49,6 @@ pub struct User {
     pub name: String,
     pub username: Option<String>,
     pub email: Option<String>,
-    pub locale: String,
 
     #[serde(skip_serializing)]
     pub password: Option<String>,
@@ -76,7 +79,6 @@ impl std::fmt::Debug for User {
             .field("name", &self.name)
             .field("username", &self.username)
             .field("email", &self.email)
-            .field("locale", &self.locale)
             .field("created_at", &self.created_at)
             .field("updated_at", &self.updated_at)
             .field("updated_at", &self.deleted_at)
@@ -94,9 +96,11 @@ pub enum Credentials {
     OAuth(OAuthCreds),
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PasswordCreds {
+    #[serde(deserialize_with = "string_trim")]
     pub username: String,
+
     pub password: String,
 }
 
@@ -117,6 +121,7 @@ pub struct SignUp {
         length(min = 6, message = "Name must be at least 6 chars"),
         length(max = 50, message = "Name must not exceed 50 chars")
     )]
+    #[serde(deserialize_with = "string_trim")]
     pub name: String,
 
     #[validate(
@@ -127,6 +132,7 @@ pub struct SignUp {
         length(min = 8, message = "Username must be  at least 8 chars"),
         length(max = 50, message = "Username must not exceed 50 chars")
     )]
+    #[serde(deserialize_with = "string_trim")]
     pub username: String,
 
     #[validate(
@@ -169,7 +175,7 @@ impl User {
         creds: Credentials,
         db: PgPool,
         client: BasicClient,
-        session: Session,
+        session: &Session,
     ) -> Result<Option<User>, AuthError> {
         match creds {
             Credentials::Password(password_cred) => {

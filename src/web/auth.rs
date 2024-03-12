@@ -1,5 +1,4 @@
-use crate::users::AuthUser;
-use crate::users::{Credentials, PasswordCreds, SignUp, User};
+use crate::users::{AuthUser, Credentials, PasswordCreds, SignUp, User};
 use crate::{middlewares, validations, AppState};
 use askama::Template;
 use askama_axum::IntoResponse;
@@ -15,23 +14,25 @@ use password_auth::generate_hash;
 use rust_i18n::locale;
 use sqlx::query;
 use tower_sessions::Session;
+use validations::save_payload;
 use validator::Validate;
 
 pub const USER_SESSION_KEY: &str = "user";
 
 #[derive(Template)]
 #[template(path = "pages/signin.html")]
-pub struct SigninTemplate {
-    pub title: String,
-    pub messages: Vec<String>,
+struct SigninTemplate {
+    title: String,
+    messages: Vec<String>,
     locale: String,
+    payload: PasswordCreds,
 }
 
 #[derive(Template)]
 #[template(path = "pages/signup.html")]
 pub struct SignupTemplate {
-    pub title: String,
-    pub messages: Vec<String>,
+    title: String,
+    messages: Vec<String>,
     locale: String,
 }
 
@@ -44,9 +45,13 @@ pub fn router() -> Router<AppState> {
 }
 
 mod get {
+    use self::validations::get_payload;
     use super::*;
 
-    pub async fn signin(messages: Messages) -> SigninTemplate {
+    #[axum::debug_handler]
+    pub async fn signin(messages: Messages, session: Session) -> SigninTemplate {
+        let payload = get_payload::<PasswordCreds>(&session).await;
+
         let messages = messages
             .into_iter()
             .map(|message| format!("{}", message))
@@ -56,9 +61,11 @@ mod get {
             title: t!("sign_in").to_string(),
             messages,
             locale: locale().to_string(),
+            payload,
         }
     }
 
+    #[axum::debug_handler]
     pub async fn signup(messages: Messages) -> SignupTemplate {
         // Should be separate function
         let messages = messages
@@ -79,6 +86,29 @@ mod post {
     use super::*;
     use tokio::task;
     use validator::ValidationError;
+
+    pub async fn password(
+        session: Session,
+        messages: Messages,
+        State(AppState { db, client }): State<AppState>,
+        Form(payload): Form<PasswordCreds>,
+    ) -> impl IntoResponse {
+        match User::authenticate(Credentials::Password(payload.clone()), db, client, &session).await
+        {
+            Ok(Some(_)) => Redirect::to("/").into_response(),
+            Ok(None) => {
+                // save msgs -- there is no user
+                messages.error("These credentials do not match ours");
+                save_payload(&payload, &session).await;
+                Redirect::to("/signin").into_response()
+            }
+            Err(_) => {
+                messages.error(t!("system_error"));
+                save_payload(&payload, &session).await;
+                Redirect::to("/signin").into_response()
+            }
+        }
+    }
 
     pub async fn signup(
         messages: Messages,
@@ -156,26 +186,6 @@ mod post {
                 }
                 flash_errors(errs, messages).await;
                 Redirect::to("/signup")
-            }
-        }
-    }
-
-    pub async fn password(
-        session: Session,
-        messages: Messages,
-        State(AppState { db, client }): State<AppState>,
-        Form(creds): Form<PasswordCreds>,
-    ) -> impl IntoResponse {
-        match User::authenticate(Credentials::Password(creds.clone()), db, client, session).await {
-            Ok(Some(_)) => Redirect::to("/").into_response(),
-            Ok(None) => {
-                // save msgs -- there is no user
-                messages.error("These credentials do not match ours");
-                Redirect::to("/signin").into_response()
-            }
-            Err(_) => {
-                messages.error(t!("system_error"));
-                Redirect::to("/signin").into_response()
             }
         }
     }

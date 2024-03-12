@@ -1,8 +1,36 @@
-use std::{borrow::Cow, collections::HashMap};
-
 use axum_messages::Messages;
+use serde::{de::DeserializeOwned, Serialize};
 use sqlx::{query, Pool, Postgres};
+use std::{borrow::Cow, collections::HashMap, default::Default};
+use tower_sessions::Session;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
+
+pub const PAYLOAD_SESSION_KEY: &str = "payload";
+
+pub async fn save_payload<T: Serialize>(payload: &T, session: &Session) {
+    session
+        .insert(PAYLOAD_SESSION_KEY, payload)
+        .await
+        .expect("failed to inset payload");
+}
+
+pub async fn get_payload<T: DeserializeOwned + Default>(session: &Session) -> T {
+    match session
+        .get::<T>(PAYLOAD_SESSION_KEY)
+        .await
+        .expect("Faild to get payload from session")
+    {
+        Some(payload) => payload,
+        None => T::default(),
+    }
+}
+
+pub fn get_messages(messages: Messages) -> Vec<String> {
+    messages
+        .into_iter()
+        .map(|message| format!("{}", message))
+        .collect::<Vec<_>>()
+}
 
 pub async fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String> {
     let errors = errs.field_errors();

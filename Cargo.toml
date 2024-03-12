@@ -1,5 +1,5 @@
 [package]
-name = "my-multi-auth"
+name = "my-auth"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,14 +7,19 @@ edition = "2021"
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 axum = { version = "0.7.4", features = ["macros"] }
-axum-messages = "0.3.0"
 dotenvy = "0.15.7"
 lazy_static = "1.4.0"
 oauth2 = { version = "4.4.2", features = ["reqwest"] }
 password-auth = "1.0.0"
 regex = "1.10.3"
 serde = "1.0.196"
-sqlx = { version = "0.7.3", features = ["postgres", "macros", "runtime-async-std", "uuid", "time"] }
+sqlx = { version = "0.7.3", features = [
+  "postgres",
+  "macros",
+  "runtime-async-std",
+  "uuid",
+  "time",
+] }
 thiserror = "1.0.56"
 time = "0.3.31"
 tokio = { version = "1.35.1", features = ["full"] }
@@ -29,3 +34,6 @@ tower = "0.4.13"
 async-trait = "0.1.77"
 unicode-segmentation = "1.11.0"
 rust-i18n = "3.0.1"
+serde_json = "1.0.114"
+serde_trim = "1.1.0"
+axum-messages = "0.3.0"

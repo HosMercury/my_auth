@@ -6,10 +6,9 @@ use rust_i18n::locale;
 #[derive(Template)]
 #[template(path = "pages/dashboard.html")]
 pub struct DashboardTemplate {
-    pub title: String,
-    pub messages: Option<Vec<String>>,
-    pub username: String,
-    pub locale: String,
+    title: String,
+    username: String,
+    locale: String,
 }
 
 pub fn router() -> Router<AppState> {
@@ -20,25 +19,22 @@ pub fn router() -> Router<AppState> {
 }
 
 pub mod get {
+    use askama_axum::IntoResponse;
+
     use super::*;
 
-    // #[axum::debug_handler]
+    #[axum::debug_handler]
     pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
         DashboardTemplate {
             title: "dashboard".to_owned(),
-            messages: None,
             username: user.name,
             locale: locale().to_string(),
         }
     }
 
-    pub async fn test(user: AuthUser) -> DashboardTemplate {
-        DashboardTemplate {
-            title: "dashboard".to_owned(),
-            messages: None,
-            username: user.name,
-            locale: locale().to_string(),
-        }
+    #[axum::debug_handler]
+    pub async fn test() -> impl IntoResponse {
+        "hello test".into_response()
     }
 }
 

@@ -8,6 +8,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
 
+
 pub async fn auth(session: Session, request: Request, next: Next) -> Response {
     match session.get::<AuthUser>(USER_SESSION_KEY).await.unwrap() {
         Some(_) => next.run(request).await,
