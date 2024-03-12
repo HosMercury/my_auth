@@ -12,22 +12,6 @@ pub struct DashboardTemplate {
     pub locale: String,
 }
 
-impl DashboardTemplate {
-    pub async fn new(
-        title: String,
-        messages: Option<Vec<String>>,
-        username: String,
-        locale: String,
-    ) -> Self {
-        DashboardTemplate {
-            title: t!(&title).to_string(),
-            messages,
-            username,
-            locale,
-        }
-    }
-}
-
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(self::get::dashboard))
@@ -40,25 +24,25 @@ pub mod get {
 
     // #[axum::debug_handler]
     pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
-        DashboardTemplate::new(
-            "dashboard".to_owned(),
-            None,
-            user.name,
-            locale().to_string(),
-        )
-        .await
+        DashboardTemplate {
+            title: "dashboard".to_owned(),
+            messages: None,
+            username: user.name,
+            locale: locale().to_string(),
+        }
     }
 
     pub async fn test(user: AuthUser) -> DashboardTemplate {
-        DashboardTemplate::new(
-            "dashboard".to_owned(),
-            None,
-            user.name,
-            locale().to_string(),
-        )
-        .await
+        DashboardTemplate {
+            title: "dashboard".to_owned(),
+            messages: None,
+            username: user.name,
+            locale: locale().to_string(),
+        }
     }
 }
+
+///////////////////// TESTING //////////////////////
 
 // #[derive(Serialize, Deserialize, Validate)]
 // pub struct MyUser {
