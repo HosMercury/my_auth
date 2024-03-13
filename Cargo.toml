@@ -23,8 +23,8 @@ sqlx = { version = "0.7.3", features = [
 thiserror = "1.0.56"
 time = "0.3.31"
 tokio = { version = "1.35.1", features = ["full"] }
-tower-sessions = "0.10.1"
-tower-sessions-redis-store = "0.10.0"
+tower-sessions = "0.11.0"
+tower-sessions-redis-store = "0.11.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 uuid = { version = "1.7.0", features = ["serde"] }
 validator = { version = "0.16.1", features = ["derive"] }
@@ -36,4 +36,4 @@ unicode-segmentation = "1.11.0"
 rust-i18n = "3.0.1"
 serde_json = "1.0.114"
 serde_trim = "1.1.0"
-axum-messages = "0.3.0"
+axum-messages = "0.5.0"

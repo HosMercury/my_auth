@@ -1,10 +1,11 @@
+mod api;
 mod extractors;
 mod middlewares;
 mod users;
 mod validations;
 mod web;
 
-use axum::middleware;
+use axum::{middleware, Router};
 use axum_messages::MessagesManagerLayer;
 use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -14,7 +15,7 @@ use tower_http::services::ServeDir;
 use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use web::{auth, dashboard, oauth};
+use web::{auth, main, oauth};
 
 #[macro_use]
 extern crate rust_i18n;
@@ -95,7 +96,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /////////////////////////  State  /////////////////////////
     let state = AppState { db, client };
 
-    let app = dashboard::router()
+    let api_routes = Router::new()
+        .nest("/api", api::main::router())
+        .with_state(state.clone());
+
+    let web_routes = main::router()
         // no need for middleware bc extractor do the same thing
         // but it is still here for just in case or other need for other projs
         .layer(middleware::from_fn(middlewares::auth))
@@ -104,11 +109,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(middleware::from_fn(middlewares::locale))
         .layer(MessagesManagerLayer)
         .layer(session_layer)
-        .with_state(state)
         .nest_service("/assets", ServeDir::new("assets"));
+
+    let app = Router::new()
+        .merge(web_routes)
+        .merge(api_routes)
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
+
+    // let listener2 = tokio::net::TcpListener::bind("0.0.0.0:4000").await.unwrap();
+    // axum::serve(listener2, api_routes).await.unwrap();
 
     Ok(())
 }

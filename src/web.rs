@@ -1,3 +1,3 @@
 pub mod auth;
-pub mod dashboard;
+pub mod main;
 pub mod oauth;
