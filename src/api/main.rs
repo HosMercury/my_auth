@@ -1,6 +1,5 @@
 use crate::AppState;
-use axum::{routing::get, Json, Router};
-use serde_json::json;
+use axum::{routing::get, Router};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -9,8 +8,8 @@ pub fn router() -> Router<AppState> {
 }
 
 pub mod get {
-
-    use super::*;
+    use base64::prelude::*;
+    use rand_core::{OsRng, RngCore};
 
     #[axum::debug_handler]
     pub async fn main() -> &'static str {
@@ -18,14 +17,13 @@ pub mod get {
     }
 
     #[axum::debug_handler]
-    pub async fn test() -> Json<serde_json::Value> {
-        Json(json!({
-            "name": "John Doe",
-            "age": 43,
-            "phones": [
-                "+44 1234567",
-                "+44 2345678"
-            ]
-        }))
+    pub async fn test() -> String {
+        let mut key = [0u8; 64];
+        OsRng.fill_bytes(&mut key);
+        let random_u64 = OsRng.next_u64();
+
+        let token = BASE64_URL_SAFE_NO_PAD.encode(&random_u64.to_string());
+
+        token
     }
 }
