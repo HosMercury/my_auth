@@ -10,6 +10,7 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_trim::*;
 use sqlx::{query_as, FromRow, PgPool};
+use std::fmt::Debug;
 use time::OffsetDateTime;
 use tokio::task;
 use uuid::Uuid;
@@ -46,7 +47,7 @@ pub struct User {
 }
 
 // access token.
-impl std::fmt::Debug for User {
+impl Debug for User {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("User")
             .field("id", &self.id)
@@ -279,7 +280,7 @@ impl User {
                 Ok(user)
             }
             RegisterUser::ApiUser(ApiUser { name, email }) => {
-                let api_key = os_keygen().await;
+                let api_key = os_keygen();
                 let user = query_as!(
                     Self,
                     r#"
@@ -305,7 +306,7 @@ impl User {
 pub struct GoogleOauth;
 
 impl GoogleOauth {
-    pub async fn authorize_url(client: BasicClient) -> (Url, CsrfToken) {
+    pub  fn authorize_url(client: BasicClient) -> (Url, CsrfToken) {
         let scopes = vec![
             Scope::new("https://www.googleapis.com/auth/userinfo.email".to_string()),
             Scope::new("https://www.googleapis.com/auth/userinfo.profile".to_string()),

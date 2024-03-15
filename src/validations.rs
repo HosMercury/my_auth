@@ -10,7 +10,7 @@ lazy_static! {
     pub static ref REGEX_USERNAME: Regex = Regex::new(r"[a-zA-Z0-9_-]{8,50}$").unwrap();
 }
 
-pub async fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String> {
+pub fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String> {
     let errors = errs.field_errors();
     let mut extracted_errors: HashMap<&str, String> = HashMap::new();
 
@@ -19,43 +19,43 @@ pub async fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String>
             "regex_name" => {
                 extracted_errors.insert(
                     field,
-                    t!("errors.invalid_name", field = t!(field),).to_string(),
+                    (t!("errors.invalid_name", field = t!(field))).to_string(),
                 );
             }
             "regex_username" => {
                 extracted_errors.insert(
                     field,
-                    t!("errors.invalid_username", field = t!(field),).to_string(),
+                    (t!("errors.invalid_username", field = t!(field))).to_string(),
                 );
             }
             "username_exists" => {
                 extracted_errors.insert(
                     field,
-                    t!("errors.username_exists", field = t!(field),).to_string(),
+                    (t!("errors.username_exists", field = t!(field))).to_string(),
                 );
             }
             "email_exists" => {
                 extracted_errors.insert(
                     field,
-                    t!("errors.email_exists", field = t!(field),).to_string(),
+                    (t!("errors.email_exists", field = t!(field))).to_string(),
                 );
             }
             "email" => {
                 extracted_errors.insert(
                     field,
-                    t!("errors.invalid_email", field = t!(field),).to_string(),
+                    (t!("errors.invalid_email", field = t!(field))).to_string(),
                 );
             }
             "regex_passwords" => {
                 extracted_errors.insert(
                     field,
-                    t!("errors.invalid_password", field = t!(field),).to_string(),
+                    t!("errors.invalid_password", field = t!(field)).to_string(),
                 );
             }
             "must_match" => {
                 extracted_errors.insert(
                     field,
-                    t!("errors.must_match", field = t!(field),).to_string(),
+                    t!("errors.must_match", field = t!(field)).to_string(),
                 );
             }
             "min_length" => {
@@ -96,7 +96,7 @@ pub async fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String>
                 // Unknown code - just in case
                 extracted_errors.insert(
                     field,
-                    t!("errors.invalid_field", field = t!(field),).to_string(),
+                    t!("errors.invalid_field", field = t!(field)).to_string(),
                 );
             }
         })
@@ -126,11 +126,29 @@ pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     }
 }
 
-pub async fn username_exists(username: String, pool: &Pool<Postgres>) -> bool {
+pub async fn username_exists(username: &str, pool: &Pool<Postgres>) -> bool {
     query!("SELECT username FROM users WHERE username = $1", username)
         .fetch_one(pool)
         .await
         .is_ok()
+}
+
+pub async fn validate_username<'a>(
+    errors: &'a mut ValidationErrors,
+    username: &str,
+    db: &Pool<Postgres>,
+) -> &'a ValidationErrors {
+    if username_exists(username, db).await {
+        errors.add(
+            "username",
+            ValidationError {
+                code: "username_exists".into(),
+                message: Some(t!("username_exists").into()),
+                params: [("username".into(), username.into())].into_iter().collect(),
+            },
+        )
+    }
+    errors
 }
 
 #[allow(unused)]
@@ -171,7 +189,7 @@ pub fn flatten_validation_errs<'a>(
 }
 
 #[allow(unused)]
-pub async fn json_validatio_errors(errs: ValidationErrors) {
+pub fn json_validatio_errors(errs: ValidationErrors) {
     let mut new_errs = ValidationErrors::new();
 
     let mut new_m: Vec<String> = Vec::new();
@@ -193,7 +211,7 @@ pub async fn json_validatio_errors(errs: ValidationErrors) {
 }
 
 #[allow(unused)]
-pub async fn flash_errors(errs: ValidationErrors, messages: Messages) {
+pub fn flash_errors(errs: ValidationErrors, messages: Messages) {
     let mut new_errs = ValidationErrors::new();
 
     flatten_validation_errs(&errs, &mut new_errs)

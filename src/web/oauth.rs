@@ -27,15 +27,14 @@ pub fn router() -> Router<AppState> {
 }
 
 mod get {
-    use crate::web::session::save_session_csrf;
-
     use super::*;
+    use crate::web::session::save_session_csrf;
 
     pub async fn google_oauth(
         State(AppState { client, .. }): State<AppState>,
         session: Session,
     ) -> impl IntoResponse {
-        let (url, csrf_token) = GoogleOauth::authorize_url(client).await;
+        let (url, csrf_token) = GoogleOauth::authorize_url(client);
         save_session_csrf(csrf_token, session).await;
 
         Redirect::to(url.as_str())
@@ -43,10 +42,8 @@ mod get {
 }
 
 mod post {
-
-    use crate::web::session::CSRF_STATE_KEY;
-
     use super::*;
+    use crate::web::session::CSRF_STATE_KEY;
 
     pub async fn callback(
         session: Session,

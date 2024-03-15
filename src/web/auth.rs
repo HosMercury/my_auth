@@ -43,15 +43,14 @@ pub fn router() -> Router<AppState> {
 }
 
 mod get {
-    use crate::web::session::{get_messages, get_previous_data};
-
     use super::*;
+    use crate::web::session::{get_messages, get_previous_data};
 
     #[axum::debug_handler]
     pub async fn signin(messages: Messages, session: Session) -> SigninTemplate {
         SigninTemplate {
             title: t!("sign_in").to_string(),
-            messages: get_messages(&messages).await,
+            messages: get_messages(&messages),
             locale: locale().to_string(),
             previous_data: get_previous_data::<PasswordCreds>(&session).await,
         }
@@ -61,7 +60,7 @@ mod get {
     pub async fn signup(messages: Messages, session: Session) -> SignupTemplate {
         SignupTemplate {
             title: t!("sign_up").to_string(),
-            messages: get_messages(&messages).await,
+            messages: get_messages(&messages),
             locale: locale().to_string(),
             previous_data: get_previous_data::<SignUp>(&session).await,
         }
@@ -69,18 +68,11 @@ mod get {
 }
 
 mod post {
-    use std::collections::HashMap;
-
-    use axum_messages::{Level, Message, Metadata};
-    use serde_json::{json, Value};
-    use validator::ValidationError;
-
-    use crate::{
-        validations::{username_exists, validation_errors},
-        web::session::{get_messages, save_previous_data, set_messages},
-    };
-
     use super::*;
+    use crate::{
+        validations::{validate_username, validation_errors},
+        web::session::{save_messages, save_previous_data},
+    };
 
     pub async fn password(
         session: Session,
@@ -108,44 +100,28 @@ mod post {
     }
 
     pub async fn signup(
-        mut messages: Messages,
+        messages: Messages,
         session: Session,
         State(AppState { db, .. }): State<AppState>,
         Form(payload): Form<SignUp>,
     ) -> Redirect {
+        save_previous_data(&payload, &session).await;
+
         match payload.validate() {
             Ok(_) => {
                 match User::register(users::RegisterUser::WebUser(payload.clone()), db).await {
-                    Ok(user) => {
-                        save_session_user(user, &session).await;
-                        Redirect::to("/")
-                    }
+                    Ok(_) => Redirect::to("/"),
                     Err(_) => {
                         messages.error(t!("errors.system_error"));
-                        save_previous_data(&payload, &session).await;
                         Redirect::to("/signin")
                     }
                 }
             }
-            Err(mut errs) => {
-                // async validations
-                if username_exists(payload.username.clone(), &db).await {
-                    errs.add(
-                        "username",
-                        ValidationError {
-                            code: "username".into(),
-                            message: Some(t!("username_exists").into()),
-                            params: [("username".into(), payload.username.clone().into())]
-                                .into_iter()
-                                .collect(),
-                        },
-                    )
-                }
-
-                let errors = validation_errors(&errs).await;
-                set_messages(&errors, &messages).await;
-
-                save_previous_data(&payload, &session).await;
+            Err(mut e) => {
+                // async validations -- does not work with custom validator crate
+                let errors = validate_username(&mut e, &payload.username, &db).await;
+                let errs = validation_errors(&errors);
+                save_messages(&errs, &messages);
                 Redirect::to("/signup")
             }
         }

@@ -17,6 +17,6 @@ pub mod get {
 
     #[axum::debug_handler]
     pub async fn test() -> String {
-        os_keygen().await
+        os_keygen()
     }
 }
