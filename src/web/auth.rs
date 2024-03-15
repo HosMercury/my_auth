@@ -1,5 +1,6 @@
 use crate::users::{self, Credentials, PasswordCreds, SignUp, User};
 use crate::validations::get_messages;
+use crate::web::save_session_user;
 use crate::{middlewares, validations, AppState};
 use askama::Template;
 use askama_axum::IntoResponse;
@@ -13,10 +14,9 @@ use axum::{
 use axum_messages::Messages;
 use rust_i18n::locale;
 use tower_sessions::Session;
+use validations::get_previous_data;
 use validations::save_previous_data;
 use validator::Validate;
-
-use self::validations::get_previous_data;
 
 #[derive(Template)]
 #[template(path = "pages/signin.html")]
@@ -69,9 +69,6 @@ mod get {
 }
 
 mod post {
-
-    use crate::web::{save_session_user, AuthUser};
-
     use super::*;
 
     pub async fn password(
