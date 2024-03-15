@@ -1,1 +1,2 @@
 // roles - permissions logic
+// check username - email existence in all cases

@@ -1,4 +1,4 @@
-use crate::{users::AuthUser, web::auth::USER_SESSION_KEY};
+use crate::{web::AuthUser, web::USER_SESSION_KEY};
 use askama_axum::IntoResponse;
 use axum::{
     extract::{Query, Request},
@@ -7,7 +7,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tower_sessions::Session;
-
 
 pub async fn auth(session: Session, request: Request, next: Next) -> Response {
     match session.get::<AuthUser>(USER_SESSION_KEY).await.unwrap() {

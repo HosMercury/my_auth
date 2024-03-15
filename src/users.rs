@@ -1,54 +1,28 @@
-use crate::{
-    validations,
-    web::{auth::USER_SESSION_KEY, oauth::CSRF_STATE_KEY},
-};
+use crate::{validations, web::os_key_gen};
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
-use lazy_static::lazy_static;
 use oauth2::{
     basic::{BasicClient, BasicRequestTokenError},
     reqwest::{async_http_client, AsyncHttpClientError},
     AuthorizationCode, CsrfToken, Scope, TokenResponse,
 };
-use password_auth::verify_password;
-use regex::Regex;
+use password_auth::{generate_hash, verify_password};
+use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_trim::*;
 use sqlx::{query_as, FromRow, PgPool};
 use time::OffsetDateTime;
 use tokio::task;
-use tower_sessions::Session;
 use uuid::Uuid;
-use validations::validate_password;
+use validations::{validate_password, REGEX_NAME, REGEX_USERNAME};
 use validator::Validate;
 
-lazy_static! {
-    pub static ref REGEX_NAME: Regex = Regex::new(r"^[a-zA-Z]{3,}[a-zA-Z0-9 ]{3,50}$").unwrap();
-    pub static ref REGEX_USERNAME: Regex = Regex::new(r"^[a-zA-Z0-9_-]{8,50}$").unwrap();
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct AuthUser {
-    pub id: Uuid,
-    pub name: String,
-}
-
-impl AuthUser {
-    #[allow(unused)]
-    pub async fn is_authenticated(&self, session: Session) -> bool {
-        session
-            .get::<AuthUser>(USER_SESSION_KEY)
-            .await
-            .unwrap()
-            .is_some()
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: Uuid,
     pub name: String,
     pub username: Option<String>,
     pub email: Option<String>,
+    pub provider: String,
 
     #[serde(skip_serializing)]
     pub password: Option<String>,
@@ -79,6 +53,7 @@ impl std::fmt::Debug for User {
             .field("name", &self.name)
             .field("username", &self.username)
             .field("email", &self.email)
+            .field("provider", &self.provider)
             .field("created_at", &self.created_at)
             .field("updated_at", &self.updated_at)
             .field("updated_at", &self.deleted_at)
@@ -111,47 +86,59 @@ pub struct OAuthCreds {
     pub new_state: CsrfToken,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
+struct UserInfo {
+    given_name: String,
+    email: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum RegisterUser {
+    WebUser(SignUp),
+    ApiUser(ApiUser),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, Default)]
 pub struct SignUp {
     #[validate(
-        regex(
-            path = "REGEX_NAME",
-            message = "Name must be alphabetic and could contain space only"
-        ),
-        length(min = 6, message = "Name must be at least 6 chars"),
-        length(max = 50, message = "Name must not exceed 50 chars")
+        regex(code = "regex_name", path = "REGEX_NAME",),
+        length(code = "min_length", min = 8),
+        length(code = "max_length", max = 50)
     )]
     #[serde(deserialize_with = "string_trim")]
     pub name: String,
 
     #[validate(
-        regex(
-            path = "REGEX_USERNAME",
-            message = "Username must be alphanumeric and/or dashes 0r underscore only"
-        ),
-        length(min = 8, message = "Username must be  at least 8 chars"),
-        length(max = 50, message = "Username must not exceed 50 chars")
+        regex(code = "regex_username", path = "REGEX_USERNAME",),
+        length(code = "min_length", min = 8),
+        length(code = "max_length", max = 50)
     )]
     #[serde(deserialize_with = "string_trim")]
     pub username: String,
 
     #[validate(
-        custom(
-            function = "validate_password",
-            message = "Username must be at least than 8 characters and must contain only letters, digits, dash and/or underscore"
-        ),
-        length(min = 8, message = "Password must be at least 8 characters"),
-        length(max = 500, message = "Password must not exceed 500 chars")
+        custom(code = "regex_password", function = "validate_password",),
+        length(code = "min_length", min = 8,),
+        length(code = "max_length", max = 500,)
     )]
     pub password: String,
 
-    #[validate(must_match(other = "password", message = "Passwords are not identical"))]
+    #[validate(must_match(code = "must_match", other = "password"))]
     pub password2: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct UserInfo {
-    given_name: String,
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct ApiUser {
+    #[validate(
+        regex(code = "regex_name", path = "REGEX_NAME",),
+        length(code = "min_length", min = 8),
+        length(code = "max_length", max = 50)
+    )]
+    #[serde(deserialize_with = "string_trim")]
+    name: String,
+
+    #[validate(email(code = "email"))]
+    #[serde(deserialize_with = "string_trim")]
     email: String,
 }
 
@@ -175,13 +162,12 @@ impl User {
         creds: Credentials,
         db: PgPool,
         client: BasicClient,
-        session: &Session,
     ) -> Result<Option<User>, AuthError> {
         match creds {
-            Credentials::Password(password_cred) => {
+            Credentials::Password(PasswordCreds { username, password }) => {
                 let user: Option<Self> =
                     query_as("SELECT * FROM users WHERE username = $1 AND password IS NOT NULL")
-                        .bind(password_cred.username)
+                        .bind(username)
                         .fetch_optional(&db)
                         .await
                         .map_err(AuthError::Sqlx)?;
@@ -191,10 +177,10 @@ impl User {
                     // We're using password-based authentication: this works by comparing our form
                     // input with an argon2 password hash.
                     Ok(user.filter(|user| {
-                        let Some(ref password) = user.password else {
+                        let Some(ref db_password) = user.password else {
                             return false;
                         };
-                        verify_password(password_cred.password, password).is_ok()
+                        verify_password(password, db_password).is_ok()
                     }))
                 })
                 .await
@@ -202,35 +188,26 @@ impl User {
 
                 match user_result {
                     Ok(user) => match user {
-                        Some(user) => {
-                            session
-                                .insert(
-                                    USER_SESSION_KEY,
-                                    AuthUser {
-                                        id: user.id.clone(),
-                                        name: user.name.clone(),
-                                    },
-                                )
-                                .await
-                                .unwrap();
-
-                            Ok(Some(user))
-                        }
+                        Some(user) => Ok(Some(user)),
                         None => Ok(None),
                     },
                     Err(err) => Err(err),
                 }
             }
 
-            Credentials::OAuth(oauth_creds) => {
+            Credentials::OAuth(OAuthCreds {
+                code,
+                old_state,
+                new_state,
+            }) => {
                 // Ensure the CSRF state has not been tampered with.
-                if oauth_creds.old_state.secret() != oauth_creds.new_state.secret() {
+                if old_state.secret() != new_state.secret() {
                     return Ok(None);
                 };
 
                 // Process authorization code, expecting a token response back.
                 let token_response = client
-                    .exchange_code(AuthorizationCode::new(oauth_creds.code))
+                    .exchange_code(AuthorizationCode::new(code))
                     .request_async(async_http_client)
                     .await
                     .map_err(AuthError::OAuth2)?;
@@ -267,18 +244,59 @@ impl User {
                 .await
                 .map_err(AuthError::Sqlx)?;
 
-                session
-                    .insert(
-                        USER_SESSION_KEY,
-                        AuthUser {
-                            id: user.id.clone(),
-                            name: user.name.clone(),
-                        },
-                    )
-                    .await
-                    .unwrap();
-
                 Ok(Some(user))
+            }
+        }
+    }
+
+    pub async fn register(payload: RegisterUser, db: PgPool) -> Result<User, AuthError> {
+        match payload {
+            RegisterUser::WebUser(SignUp {
+                name,
+                username,
+                password,
+                ..
+            }) => {
+                let hashed_password = task::spawn_blocking(|| generate_hash(password))
+                    .await
+                    .expect("Hashing password failed");
+
+                let user = query_as!(
+                    Self,
+                    r#"
+                    INSERT INTO users (name, username, password)
+                    VALUES ($1, $2, $3)
+                    RETURNING *
+                "#,
+                    name,
+                    username,
+                    hashed_password
+                )
+                .fetch_one(&db)
+                .await
+                .map_err(AuthError::Sqlx)?;
+
+                Ok(user)
+            }
+            RegisterUser::ApiUser(ApiUser { name, email }) => {
+                let api_key = os_key_gen().await;
+                let user = query_as!(
+                    Self,
+                    r#"
+                    INSERT INTO users (name, email, provider, access_token)
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING *
+                "#,
+                    name,
+                    email,
+                    "api",
+                    api_key
+                )
+                .fetch_one(&db)
+                .await
+                .map_err(AuthError::Sqlx)?;
+
+                Ok(user)
             }
         }
     }
@@ -287,22 +305,15 @@ impl User {
 pub struct GoogleOauth;
 
 impl GoogleOauth {
-    pub async fn authorize_url(client: BasicClient, session: Session) -> String {
+    pub async fn authorize_url(client: BasicClient) -> (Url, CsrfToken) {
         let scopes = vec![
             Scope::new("https://www.googleapis.com/auth/userinfo.email".to_string()),
             Scope::new("https://www.googleapis.com/auth/userinfo.profile".to_string()),
         ];
 
-        let (auth_url, csrf_token) = client
+        client
             .authorize_url(CsrfToken::new_random)
             .add_scopes(scopes.iter().cloned())
-            .url();
-
-        session
-            .insert(CSRF_STATE_KEY, csrf_token)
-            .await
-            .expect("Session failed to insert oauth csrf token");
-
-        auth_url.to_string()
+            .url()
     }
 }

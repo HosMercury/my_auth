@@ -1,22 +1,32 @@
 use axum_messages::Messages;
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde::{de::DeserializeOwned, Serialize};
 use sqlx::{query, Pool, Postgres};
 use std::{borrow::Cow, collections::HashMap, default::Default};
 use tower_sessions::Session;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
-pub const PAYLOAD_SESSION_KEY: &str = "payload";
+pub const PREVIOUS_DATA_SESSION_KEY: &str = "previous_data";
 
-pub async fn save_payload<T: Serialize>(payload: &T, session: &Session) {
+lazy_static! {
+    pub static ref REGEX_NAME: Regex = Regex::new(r"[a-zA-Z ]{8,50}$").unwrap();
+    pub static ref REGEX_USERNAME: Regex = Regex::new(r"[a-zA-Z0-9_-]{8,50}$").unwrap();
+}
+
+//////////////////////// Old Data //////////////////////////
+// Save payload data in session
+pub async fn save_previous_data<T: Serialize>(payload: &T, session: &Session) {
     session
-        .insert(PAYLOAD_SESSION_KEY, payload)
+        .insert(PREVIOUS_DATA_SESSION_KEY, payload)
         .await
         .expect("failed to inset payload");
 }
 
-pub async fn get_payload<T: DeserializeOwned + Default>(session: &Session) -> T {
+// Get payload data from session
+pub async fn get_previous_data<T: DeserializeOwned + Default>(session: &Session) -> T {
     match session
-        .get::<T>(PAYLOAD_SESSION_KEY)
+        .get::<T>(PREVIOUS_DATA_SESSION_KEY)
         .await
         .expect("Faild to get payload from session")
     {
@@ -25,6 +35,8 @@ pub async fn get_payload<T: DeserializeOwned + Default>(session: &Session) -> T 
     }
 }
 
+////////////////////////////// Flash Messages ////////////////////////////
+// Get flash messages
 pub fn get_messages(messages: Messages) -> Vec<String> {
     messages
         .into_iter()
@@ -37,48 +49,89 @@ pub async fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String>
     let mut extracted_errors: HashMap<&str, String> = HashMap::new();
 
     errors.into_iter().for_each(|(field, errs)| {
-        errs.into_iter().for_each(|e| {
-            // println!("params {:?}", e.clone().params["min"]);
-            //let params = e.clone().params;
-            // println!("{:?}", e.clone().params);
-            match e.code.as_ref() {
-                "min_length" => {
-                    extracted_errors.insert(
-                        field,
-                        t!(
-                            "errors.min_length",
-                            field = t!(field),
-                            min = e.params["min"]
-                        )
-                        .to_string(),
-                    );
-                }
-                "max_length" => {
-                    extracted_errors.insert(
-                        field,
-                        t!(
-                            "errors.max_length",
-                            field = t!(field),
-                            max = e.params["max"]
-                        )
-                        .to_string(),
-                    );
-                }
-                "range" => {
-                    extracted_errors.insert(
-                        field,
-                        t!(
-                            "errors.range",
-                            field = t!(field),
-                            min = e.params["min"],
-                            max = e.params["max"]
-                        )
-                        .to_string(),
-                    );
-                }
-                _ => {
-                    extracted_errors.insert(field, "this field is not valid".to_string());
-                }
+        errs.into_iter().for_each(|e| match e.code.as_ref() {
+            "regex_name" => {
+                extracted_errors.insert(
+                    field,
+                    t!("errors.invalid_name", field = t!(field),).to_string(),
+                );
+            }
+            "regex_username" => {
+                extracted_errors.insert(
+                    field,
+                    t!("errors.invalid_username", field = t!(field),).to_string(),
+                );
+            }
+            "username_exists" => {
+                extracted_errors.insert(
+                    field,
+                    t!("errors.username_exists", field = t!(field),).to_string(),
+                );
+            }
+            "email_exists" => {
+                extracted_errors.insert(
+                    field,
+                    t!("errors.email_exists", field = t!(field),).to_string(),
+                );
+            }
+            "email" => {
+                extracted_errors.insert(
+                    field,
+                    t!("errors.invalid_email", field = t!(field),).to_string(),
+                );
+            }
+            "regex_passwords" => {
+                extracted_errors.insert(
+                    field,
+                    t!("errors.invalid_password", field = t!(field),).to_string(),
+                );
+            }
+            "must_match" => {
+                extracted_errors.insert(
+                    field,
+                    t!("errors.must_match", field = t!(field),).to_string(),
+                );
+            }
+            "min_length" => {
+                extracted_errors.insert(
+                    field,
+                    t!(
+                        "errors.min_length",
+                        field = t!(field),
+                        min = e.params["min"]
+                    )
+                    .to_string(),
+                );
+            }
+            "max_length" => {
+                extracted_errors.insert(
+                    field,
+                    t!(
+                        "errors.max_length",
+                        field = t!(field),
+                        max = e.params["max"]
+                    )
+                    .to_string(),
+                );
+            }
+            "range" => {
+                extracted_errors.insert(
+                    field,
+                    t!(
+                        "errors.range",
+                        field = t!(field),
+                        min = e.params["min"],
+                        max = e.params["max"]
+                    )
+                    .to_string(),
+                );
+            }
+            _ => {
+                // Unknown code - just in case
+                extracted_errors.insert(
+                    field,
+                    t!("errors.invalid_field", field = t!(field),).to_string(),
+                );
             }
         })
     });
@@ -86,6 +139,7 @@ pub async fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String>
     extracted_errors
 }
 
+////////////////////////////////// Validation fns //////////////////////////////
 pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     let mut has_whitespace = false;
     let mut has_upper = false;
@@ -121,8 +175,9 @@ pub async fn email_exists(email: &str, pool: &Pool<Postgres>) -> bool {
         .is_ok()
 }
 
-////////////////////////////////// Unused //////////////////////////////
+///////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Drafts /////////////////////////////
+///////////////////////////////////////////////////////////////////////
 #[allow(unused)]
 pub fn flatten_validation_errs<'a>(
     e: &'a ValidationErrors,

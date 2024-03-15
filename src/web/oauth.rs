@@ -14,9 +14,7 @@ use oauth2::CsrfToken;
 use serde::Deserialize;
 use tower_sessions::Session;
 
-pub const CSRF_STATE_KEY: &str = "oauth.csrf-state";
-
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct OauthUrlQuery {
     code: String,
     state: CsrfToken,
@@ -29,18 +27,24 @@ pub fn router() -> Router<AppState> {
 }
 
 mod get {
+    use crate::web::save_session_csrf;
+
     use super::*;
 
     pub async fn google_oauth(
         State(AppState { client, .. }): State<AppState>,
         session: Session,
     ) -> impl IntoResponse {
-        let url = GoogleOauth::authorize_url(client, session).await;
+        let (url, csrf_token) = GoogleOauth::authorize_url(client).await;
+        save_session_csrf(csrf_token, session).await;
+
         Redirect::to(url.as_str())
     }
 }
 
 mod post {
+    use crate::web::CSRF_STATE_KEY;
+
     use super::*;
 
     pub async fn callback(
@@ -61,7 +65,7 @@ mod post {
             new_state,
         });
 
-        match User::authenticate(creds, db, client, &session).await {
+        match User::authenticate(creds, db, client).await {
             Ok(Some(_)) => Redirect::to("/").into_response(),
             Ok(None) => Redirect::to("/signin").into_response(),
             Err(_) => Redirect::to("/signin").into_response(),

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
         password TEXT,
         access_token TEXT,
         refresh_token TEXT,
+        provider TEXT NOT NULL DEFAULT 'web',
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ,
         deleted_at TIMESTAMPTZ,

@@ -94,13 +94,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
     /////////////////////////  State  /////////////////////////
-    let state = AppState { db, client };
+    let state = AppState {
+        db: db.clone(),
+        client,
+    };
 
-    let api_routes = Router::new()
-        .nest("/api", api::main::router())
-        .with_state(state.clone());
+    let api_routes = Router::new().nest(
+        "/api",
+        api::main::router().merge(api::client_auth::router()),
+    );
 
-    let web_routes = main::router()
+    let web_routes = Router::new()
+        .merge(main::router())
         // no need for middleware bc extractor do the same thing
         // but it is still here for just in case or other need for other projs
         .layer(middleware::from_fn(middlewares::auth))
@@ -111,10 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(session_layer)
         .nest_service("/assets", ServeDir::new("assets"));
 
-    let app = Router::new()
-        .merge(web_routes)
-        .merge(api_routes)
-        .with_state(state);
+    let app = web_routes.merge(api_routes).with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();

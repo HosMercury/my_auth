@@ -8,7 +8,9 @@
         {{ t!("sign_up") }}
       </legend>
       <div class="my-2">
-        <label for="username" class="form-label">{{ t!("name") }}</label>
+        <label for="name" value="{{ previous_data.name }}" class="form-label"
+          >{{ t!("name") }}</label
+        >
         <input required name="name" id="name" value="foo" class="form-input" />
       </div>
       <div class="my-2">
@@ -17,7 +19,8 @@
           required
           name="username"
           id="username"
-          value="ferris"
+          placeholder="ferris"
+          value="{{ previous_data.username }}"
           class="form-input"
         />
       </div>
@@ -30,12 +33,12 @@
           name="password"
           id="password"
           type="password"
-          value="hunter42H"
+          placeholder="hunter42H"
           class="form-input"
         />
       </div>
       <div class="my-2">
-        <label for="password" class="form-label"
+        <label for="password2" class="form-label"
           >{{ t!("confirm_password") }}</label
         >
         <input
@@ -43,7 +46,7 @@
           name="password2"
           id="password2"
           type="password"
-          value="hunter42H"
+          placeholder="hunter42H"
           class="form-input"
         />
       </div>

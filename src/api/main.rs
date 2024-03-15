@@ -8,8 +8,7 @@ pub fn router() -> Router<AppState> {
 }
 
 pub mod get {
-    use base64::prelude::*;
-    use rand_core::{OsRng, RngCore};
+    use crate::web::os_key_gen;
 
     #[axum::debug_handler]
     pub async fn main() -> &'static str {
@@ -18,12 +17,6 @@ pub mod get {
 
     #[axum::debug_handler]
     pub async fn test() -> String {
-        let mut key = [0u8; 64];
-        OsRng.fill_bytes(&mut key);
-        let random_u64 = OsRng.next_u64();
-
-        let token = BASE64_URL_SAFE_NO_PAD.encode(&random_u64.to_string());
-
-        token
+        os_key_gen().await
     }
 }

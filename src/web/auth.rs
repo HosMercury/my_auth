@@ -1,4 +1,5 @@
-use crate::users::{AuthUser, Credentials, PasswordCreds, SignUp, User};
+use crate::users::{self, Credentials, PasswordCreds, SignUp, User};
+use crate::validations::get_messages;
 use crate::{middlewares, validations, AppState};
 use askama::Template;
 use askama_axum::IntoResponse;
@@ -10,14 +11,12 @@ use axum::{
     Form, Router,
 };
 use axum_messages::Messages;
-use password_auth::generate_hash;
 use rust_i18n::locale;
-use sqlx::query;
 use tower_sessions::Session;
-use validations::save_payload;
+use validations::save_previous_data;
 use validator::Validate;
 
-pub const USER_SESSION_KEY: &str = "user";
+use self::validations::get_previous_data;
 
 #[derive(Template)]
 #[template(path = "pages/signin.html")]
@@ -25,7 +24,7 @@ struct SigninTemplate {
     title: String,
     messages: Vec<String>,
     locale: String,
-    payload: PasswordCreds,
+    previous_data: PasswordCreds,
 }
 
 #[derive(Template)]
@@ -34,6 +33,7 @@ pub struct SignupTemplate {
     title: String,
     messages: Vec<String>,
     locale: String,
+    previous_data: SignUp,
 }
 
 pub fn router() -> Router<AppState> {
@@ -45,47 +45,34 @@ pub fn router() -> Router<AppState> {
 }
 
 mod get {
-    use self::validations::get_payload;
     use super::*;
 
     #[axum::debug_handler]
     pub async fn signin(messages: Messages, session: Session) -> SigninTemplate {
-        let payload = get_payload::<PasswordCreds>(&session).await;
-
-        let messages = messages
-            .into_iter()
-            .map(|message| format!("{}", message))
-            .collect::<Vec<_>>();
-
         SigninTemplate {
             title: t!("sign_in").to_string(),
-            messages,
+            messages: get_messages(messages),
             locale: locale().to_string(),
-            payload,
+            previous_data: get_previous_data::<PasswordCreds>(&session).await,
         }
     }
 
     #[axum::debug_handler]
-    pub async fn signup(messages: Messages) -> SignupTemplate {
-        // Should be separate function
-        let messages = messages
-            .into_iter()
-            .map(|message| format!("{}", message))
-            .collect::<Vec<_>>();
-
+    pub async fn signup(messages: Messages, session: Session) -> SignupTemplate {
         SignupTemplate {
             title: t!("sign_up").to_string(),
-            messages,
+            messages: get_messages(messages),
             locale: locale().to_string(),
+            previous_data: get_previous_data::<SignUp>(&session).await,
         }
     }
 }
 
 mod post {
-    use self::validations::{flash_errors, username_exists};
+
+    use crate::web::{save_session_user, AuthUser};
+
     use super::*;
-    use tokio::task;
-    use validator::ValidationError;
 
     pub async fn password(
         session: Session,
@@ -93,18 +80,20 @@ mod post {
         State(AppState { db, client }): State<AppState>,
         Form(payload): Form<PasswordCreds>,
     ) -> impl IntoResponse {
-        match User::authenticate(Credentials::Password(payload.clone()), db, client, &session).await
-        {
-            Ok(Some(_)) => Redirect::to("/").into_response(),
+        // No validation needed here -- think again
+        match User::authenticate(Credentials::Password(payload.clone()), db, client).await {
+            Ok(Some(user)) => {
+                save_session_user(user, &session).await;
+                Redirect::to("/").into_response()
+            }
             Ok(None) => {
-                // save msgs -- there is no user
-                messages.error("These credentials do not match ours");
-                save_payload(&payload, &session).await;
+                messages.error(t!("errors.invalid_credentials"));
+                save_previous_data(&payload, &session).await;
                 Redirect::to("/signin").into_response()
             }
             Err(_) => {
                 messages.error(t!("system_error"));
-                save_payload(&payload, &session).await;
+                save_previous_data(&payload, &session).await;
                 Redirect::to("/signin").into_response()
             }
         }
@@ -114,80 +103,43 @@ mod post {
         messages: Messages,
         session: Session,
         State(AppState { db, .. }): State<AppState>,
-        Form(data): Form<SignUp>,
+        Form(payload): Form<SignUp>,
     ) -> Redirect {
-        match data.validate() {
+        match payload.validate() {
             Ok(_) => {
-                let hashed_password = task::spawn_blocking(|| generate_hash(data.password))
-                    .await
-                    .unwrap();
-
-                let result = query!(
-                    r#"
-                        INSERT INTO users (name, username, password)
-                        VALUES ($1, $2, $3)
-                        RETURNING username
-                    "#,
-                    data.name,
-                    data.username.clone(),
-                    hashed_password
-                )
-                .fetch_one(&db)
-                .await;
-
-                match result {
+                match User::register(users::RegisterUser::WebUser(payload.clone()), db).await {
                     Ok(user) => {
-                        let res = query!(
-                            "SELECT id,name FROM users WHERE username = $1",
-                            user.username
-                        )
-                        .fetch_one(&db)
-                        .await;
-
-                        match res {
-                            Ok(r) => {
-                                session
-                                    .insert(
-                                        USER_SESSION_KEY,
-                                        AuthUser {
-                                            id: r.id,
-                                            name: r.name,
-                                        },
-                                    )
-                                    .await
-                                    .expect("session failed to insert user name");
-
-                                Redirect::to("/")
-                            }
-                            Err(_) => {
-                                messages.error(t!("system_error"));
-                                Redirect::to("/signup")
-                            }
-                        }
+                        save_session_user(user, &session).await;
+                        Redirect::to("/")
                     }
                     Err(_) => {
                         messages.error(t!("system_error"));
-                        Redirect::to("/signup")
+                        save_previous_data(&payload, &session).await;
+                        Redirect::to("/signin")
                     }
                 }
             }
-            Err(mut errs) => {
-                if username_exists(data.username.clone(), &db).await {
-                    errs.add(
-                        "username", // field name
-                        ValidationError {
-                            code: "username".into(),
-                            message: Some(t!("username_exists").into()),
-                            params: [("username".into(), data.username.into())]
-                                .into_iter()
-                                .collect(),
-                        },
-                    )
-                }
-                flash_errors(errs, messages).await;
+            Err(_) => {
+                messages.error(t!("system_error"));
+                save_previous_data(&payload, &session).await;
                 Redirect::to("/signup")
             }
         }
+
+        // Err(mut errs) => {
+        //     if username_exists(payload.username.clone(), &db).await {
+        //         errs.add(
+        //             "username", // field name
+        //             ValidationError {
+        //                 code: "username".into(),
+        //                 message: Some(t!("username_exists").into()),
+        //                 params: [("username".into(), payload.username.into())]
+        //                     .into_iter()
+        //                     .collect(),
+        //             },
+        //         )
+        //     }
+        // }
     }
 
     pub async fn signout(session: Session) -> Redirect {

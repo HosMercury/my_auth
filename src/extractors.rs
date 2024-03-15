@@ -1,4 +1,4 @@
-use crate::{users::AuthUser, web::auth::USER_SESSION_KEY};
+use crate::{web::AuthUser, web::USER_SESSION_KEY};
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts, response::Redirect};
 use tower_sessions::Session;
 
