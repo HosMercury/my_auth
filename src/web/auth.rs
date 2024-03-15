@@ -51,7 +51,7 @@ mod get {
     pub async fn signin(messages: Messages, session: Session) -> SigninTemplate {
         SigninTemplate {
             title: t!("sign_in").to_string(),
-            messages: get_messages(messages),
+            messages: get_messages(&messages).await,
             locale: locale().to_string(),
             previous_data: get_previous_data::<PasswordCreds>(&session).await,
         }
@@ -61,7 +61,7 @@ mod get {
     pub async fn signup(messages: Messages, session: Session) -> SignupTemplate {
         SignupTemplate {
             title: t!("sign_up").to_string(),
-            messages: get_messages(messages),
+            messages: get_messages(&messages).await,
             locale: locale().to_string(),
             previous_data: get_previous_data::<SignUp>(&session).await,
         }
@@ -69,7 +69,16 @@ mod get {
 }
 
 mod post {
-    use crate::web::session::save_previous_data;
+    use std::collections::HashMap;
+
+    use axum_messages::{Level, Message, Metadata};
+    use serde_json::{json, Value};
+    use validator::ValidationError;
+
+    use crate::{
+        validations::{username_exists, validation_errors},
+        web::session::{get_messages, save_previous_data, set_messages},
+    };
 
     use super::*;
 
@@ -91,7 +100,7 @@ mod post {
                 Redirect::to("/signin").into_response()
             }
             Err(_) => {
-                messages.error(t!("system_error"));
+                messages.error(t!("errors.system_error"));
                 save_previous_data(&payload, &session).await;
                 Redirect::to("/signin").into_response()
             }
@@ -99,7 +108,7 @@ mod post {
     }
 
     pub async fn signup(
-        messages: Messages,
+        mut messages: Messages,
         session: Session,
         State(AppState { db, .. }): State<AppState>,
         Form(payload): Form<SignUp>,
@@ -112,33 +121,34 @@ mod post {
                         Redirect::to("/")
                     }
                     Err(_) => {
-                        messages.error(t!("system_error"));
+                        messages.error(t!("errors.system_error"));
                         save_previous_data(&payload, &session).await;
                         Redirect::to("/signin")
                     }
                 }
             }
-            Err(_) => {
-                messages.error(t!("system_error"));
+            Err(mut errs) => {
+                // async validations
+                if username_exists(payload.username.clone(), &db).await {
+                    errs.add(
+                        "username",
+                        ValidationError {
+                            code: "username".into(),
+                            message: Some(t!("username_exists").into()),
+                            params: [("username".into(), payload.username.clone().into())]
+                                .into_iter()
+                                .collect(),
+                        },
+                    )
+                }
+
+                let errors = validation_errors(&errs).await;
+                set_messages(&errors, &messages).await;
+
                 save_previous_data(&payload, &session).await;
                 Redirect::to("/signup")
             }
         }
-
-        // Err(mut errs) => {
-        //     if username_exists(payload.username.clone(), &db).await {
-        //         errs.add(
-        //             "username", // field name
-        //             ValidationError {
-        //                 code: "username".into(),
-        //                 message: Some(t!("username_exists").into()),
-        //                 params: [("username".into(), payload.username.into())]
-        //                     .into_iter()
-        //                     .collect(),
-        //             },
-        //         )
-        //     }
-        // }
     }
 
     pub async fn signout(session: Session) -> Redirect {

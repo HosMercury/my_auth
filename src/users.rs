@@ -1,4 +1,4 @@
-use crate::{validations, web::keygen::os_key_gen};
+use crate::{validations, web::keygen::os_keygen};
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
 use oauth2::{
     basic::{BasicClient, BasicRequestTokenError},
@@ -279,7 +279,7 @@ impl User {
                 Ok(user)
             }
             RegisterUser::ApiUser(ApiUser { name, email }) => {
-                let api_key = os_key_gen().await;
+                let api_key = os_keygen().await;
                 let user = query_as!(
                     Self,
                     r#"

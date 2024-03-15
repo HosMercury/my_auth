@@ -8,7 +8,7 @@ pub fn router() -> Router<AppState> {
 }
 
 pub mod get {
-    use crate::web::keygen::os_key_gen;
+    use crate::web::keygen::os_keygen;
 
     #[axum::debug_handler]
     pub async fn main() -> &'static str {
@@ -17,6 +17,6 @@ pub mod get {
 
     #[axum::debug_handler]
     pub async fn test() -> String {
-        os_key_gen().await
+        os_keygen().await
     }
 }

@@ -8,14 +8,14 @@ pub(crate) mod keygen {
     use rand::{thread_rng, RngCore};
     use rand_core::OsRng;
 
-    pub async fn key_gen() -> String {
+    pub async fn keygen() -> String {
         let mut key = [0u8; 64];
         thread_rng().fill_bytes(&mut key);
         URL_SAFE_NO_PAD.encode(&key)
     }
 
     // OS is secure
-    pub async fn os_key_gen() -> String {
+    pub async fn os_keygen() -> String {
         let mut key = [0u8; 64];
         OsRng.fill_bytes(&mut key);
         BASE64_URL_SAFE_NO_PAD.encode(&key)
@@ -23,10 +23,13 @@ pub(crate) mod keygen {
 }
 
 mod session {
+    use std::collections::HashMap;
+
     use crate::users::User;
-    use axum_messages::Messages;
+    use axum_messages::{Level, Messages, Metadata};
     use oauth2::CsrfToken;
     use serde::{de::DeserializeOwned, Deserialize, Serialize};
+    use serde_json::json;
     use tower_sessions::Session;
     use uuid::Uuid;
 
@@ -90,11 +93,20 @@ mod session {
         }
     }
 
-    pub fn get_messages(messages: Messages) -> Vec<String> {
+    pub async fn get_messages(messages: &Messages) -> Vec<String> {
         messages
+            .clone()
             .into_iter()
             .map(|message| format!("{}", message))
             .collect::<Vec<_>>()
+    }
+
+    pub async fn set_messages(flattened_errors: &HashMap<&str, String>, messages: &Messages) {
+        flattened_errors.into_iter().for_each(|(field, message)| {
+            let params: Metadata = HashMap::from([("field".to_string(), json!(field))]);
+
+            messages.clone().push(Level::Error, message, Some(params));
+        });
     }
 }
 
