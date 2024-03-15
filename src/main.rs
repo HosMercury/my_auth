@@ -1,6 +1,4 @@
 mod api;
-mod extractors;
-mod middlewares;
 mod users;
 mod validations;
 mod web;
@@ -108,10 +106,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .merge(main::router())
         // no need for middleware bc extractor do the same thing
         // but it is still here for just in case or other need for other projs
-        .layer(middleware::from_fn(middlewares::auth))
+        .layer(middleware::from_fn(web::middlwares::auth))
         .merge(auth::router())
         .merge(oauth::router())
-        .layer(middleware::from_fn(middlewares::locale))
+        .layer(middleware::from_fn(web::middlwares::locale))
         .layer(MessagesManagerLayer)
         .layer(session_layer)
         .nest_service("/assets", ServeDir::new("assets"));

@@ -1,4 +1,4 @@
-use crate::{validations, web::os_key_gen};
+use crate::{validations, web::keygen::os_key_gen};
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
 use oauth2::{
     basic::{BasicClient, BasicRequestTokenError},

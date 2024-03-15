@@ -1,7 +1,7 @@
+use super::middlwares::auth;
 use crate::users::{self, Credentials, PasswordCreds, SignUp, User};
-use crate::validations::get_messages;
-use crate::web::save_session_user;
-use crate::{middlewares, validations, AppState};
+use crate::web::session::save_session_user;
+use crate::AppState;
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::{
@@ -14,8 +14,6 @@ use axum::{
 use axum_messages::Messages;
 use rust_i18n::locale;
 use tower_sessions::Session;
-use validations::get_previous_data;
-use validations::save_previous_data;
 use validator::Validate;
 
 #[derive(Template)]
@@ -39,12 +37,14 @@ pub struct SignupTemplate {
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/signout", post(self::post::signout))
-        .layer(middleware::from_fn(middlewares::auth))
+        .layer(middleware::from_fn(auth))
         .route("/signup", get(self::get::signup).post(self::post::signup))
         .route("/signin", get(self::get::signin).post(self::post::password))
 }
 
 mod get {
+    use crate::web::session::{get_messages, get_previous_data};
+
     use super::*;
 
     #[axum::debug_handler]
@@ -69,6 +69,8 @@ mod get {
 }
 
 mod post {
+    use crate::web::session::save_previous_data;
+
     use super::*;
 
     pub async fn password(

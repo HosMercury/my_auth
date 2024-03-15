@@ -1,47 +1,13 @@
 use axum_messages::Messages;
 use lazy_static::lazy_static;
 use regex::Regex;
-use serde::{de::DeserializeOwned, Serialize};
 use sqlx::{query, Pool, Postgres};
 use std::{borrow::Cow, collections::HashMap, default::Default};
-use tower_sessions::Session;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
-
-pub const PREVIOUS_DATA_SESSION_KEY: &str = "previous_data";
 
 lazy_static! {
     pub static ref REGEX_NAME: Regex = Regex::new(r"[a-zA-Z ]{8,50}$").unwrap();
     pub static ref REGEX_USERNAME: Regex = Regex::new(r"[a-zA-Z0-9_-]{8,50}$").unwrap();
-}
-
-//////////////////////// Old Data //////////////////////////
-// Save payload data in session
-pub async fn save_previous_data<T: Serialize>(payload: &T, session: &Session) {
-    session
-        .insert(PREVIOUS_DATA_SESSION_KEY, payload)
-        .await
-        .expect("failed to inset payload");
-}
-
-// Get payload data from session
-pub async fn get_previous_data<T: DeserializeOwned + Default>(session: &Session) -> T {
-    match session
-        .get::<T>(PREVIOUS_DATA_SESSION_KEY)
-        .await
-        .expect("Faild to get payload from session")
-    {
-        Some(payload) => payload,
-        None => T::default(),
-    }
-}
-
-////////////////////////////// Flash Messages ////////////////////////////
-// Get flash messages
-pub fn get_messages(messages: Messages) -> Vec<String> {
-    messages
-        .into_iter()
-        .map(|message| format!("{}", message))
-        .collect::<Vec<_>>()
 }
 
 pub async fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String> {

@@ -9,7 +9,6 @@ pub fn router() -> Router<AppState> {
 mod get {}
 
 mod post {
-    use axum::debug_handler;
     use axum::extract::State;
 
     use crate::AppState;

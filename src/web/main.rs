@@ -1,4 +1,5 @@
-use crate::{web::AuthUser, AppState};
+use crate::web::session::AuthUser;
+use crate::AppState;
 use askama::Template;
 use axum::{routing::get, Router};
 use rust_i18n::locale;

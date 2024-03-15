@@ -27,7 +27,7 @@ pub fn router() -> Router<AppState> {
 }
 
 mod get {
-    use crate::web::save_session_csrf;
+    use crate::web::session::save_session_csrf;
 
     use super::*;
 
@@ -43,7 +43,8 @@ mod get {
 }
 
 mod post {
-    use crate::web::CSRF_STATE_KEY;
+
+    use crate::web::session::CSRF_STATE_KEY;
 
     use super::*;
 
