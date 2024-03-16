@@ -1,9 +1,8 @@
 use axum_messages::Messages;
 use lazy_static::lazy_static;
 use regex::Regex;
-use serde::Serialize;
 use sqlx::{query, Pool, Postgres};
-use std::{borrow::Cow, collections::HashMap, default::Default};
+use std::{collections::HashMap, default::Default};
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
 lazy_static! {
@@ -169,25 +168,25 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
     locale_errors
 }
 
-// #[allow(unused)]
-// pub fn json_validatio_errors(errs: &ValidationErrors) -> Vec<ValidationError> {
-//     let errors = validation_messages(&errs);
-//     let mut json_ready_errors: Vec<ValidationError> = Vec::new();
+pub fn json_validatio_errors(errors: &ValidationErrors) -> Vec<ValidationError> {
+    let mut json_ready_errors: Vec<ValidationError> = Vec::new();
 
-//     errors.field_errors().into_iter().for_each(|(field, e)| {
-//         let m = ValidationError {
-//             // code: e.code.to_string(),
-//             message: e,
-//             code: e.code.clone(),
-//             params: e.params,
-//         };
-//         json_ready_errors.push(m);
-//     });
+    errors.field_errors().into_iter().for_each(|(field, errs)| {
+        errs.into_iter().for_each(|e| {
+            let m = ValidationError {
+                message: e.message.clone().into(),
+                code: e.code.clone(),
+                params: e.params.clone(),
+            };
+            json_ready_errors.push(m);
+        })
+    });
 
-//     json_ready_errors
-// }
+    json_ready_errors
+}
 
 ////////////////////////////////// Validation fns //////////////////////////////
+// No async needing so return Result to automatically merge with Validator
 pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     let mut has_whitespace = false;
     let mut has_upper = false;
@@ -226,7 +225,7 @@ pub async fn validate_username<'a>(
             ValidationError {
                 code: "username_exists".into(),
                 message: Some(t!("username_exists").into()),
-                params: [("username".into(), username.into())].into_iter().collect(),
+                params: HashMap::from([("username".into(), username.into())]),
             },
         )
     }

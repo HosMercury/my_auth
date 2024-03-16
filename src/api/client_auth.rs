@@ -14,6 +14,7 @@ mod post {
     use serde_json::json;
     use validator::Validate;
 
+    use crate::validations::json_validatio_errors;
     use crate::{
         users::{self, ApiUser, User},
         AppState,
@@ -41,6 +42,8 @@ mod post {
             Err(mut e) => {
                 // validate async username
                 // send validation errors as json
+
+                println!("json errs {:?}", e);
 
                 Json(json!(e)).into_response()
 
