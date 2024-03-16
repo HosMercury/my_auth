@@ -80,15 +80,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
     /////////////////////////////////  State  ////////////////////////////////////////
-    let state = AppState {
+    let app_state = AppState {
         db: db.clone(),
         client,
     };
 
-    let api_routes = Router::new().nest(
-        "/api",
-        api::main::router().merge(api::client_auth::router()),
-    );
+    let api_routes = Router::new()
+        .nest(
+            "/api",
+            api::main::router().merge(api::client_auth::router()),
+        )
+        .layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            api::middlwares::auth,
+        ));
 
     let web_routes = Router::new()
         .merge(dashboard::router())
@@ -101,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(session_layer)
         .nest_service("/assets", ServeDir::new("assets"));
 
-    let app = web_routes.merge(api_routes).with_state(state);
+    let app = web_routes.merge(api_routes).with_state(app_state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();

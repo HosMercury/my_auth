@@ -12,7 +12,7 @@
   <body class='bg-gray-400 font-primary' {% if locale == "ar" %} dir="rtl" {% endif %} >
     <div class="flex flex-col items-center mt-8">
       <div class="bg-white text-center border shadow-md rounded-xl w-1/2 mt-20">
-        
+
         <div class="flex justify-center">
           <div
             class="p-4 px-6 text-xl text-black bg-white absolute rounded-b-3xl -top-1 shadow-xl"
@@ -31,7 +31,6 @@
         </div>
         {% endif %}
 
-        {% include "partials/locale.html" %}
 
         <div class="px-4">
           {% block content %} {% endblock %}

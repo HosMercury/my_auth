@@ -7,6 +7,9 @@
       >
         {{ t!("sign_up")|capitalize }}
       </legend>
+
+      {% include "partials/locale.html" %}
+      
       <div class="my-2">
         <label for="name" value="{{ previous_data.name }}" class="form-label"
           >{{ t!("name")|capitalize }}</label
