@@ -13,7 +13,7 @@ use tower_http::services::ServeDir;
 use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
 use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use web::{auth, main, oauth};
+use web::{auth, dashboard, oauth};
 
 #[macro_use]
 extern crate rust_i18n;
@@ -34,18 +34,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .try_init()?;
 
-    // tracing_subscriber::registry()
-    //     .with(
-    //         tracing_subscriber::EnvFilter::try_from_default_env()
-    //             .unwrap_or_else(|_| "tower_http=debug,axum::rejection=trace".into()),
-    //     )
-    //     .with(tracing_subscriber::fmt::layer())
-    //     .init();
-
     dotenvy::dotenv()?;
-    // rust_i18n::set_locale("ar");
 
-    //////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////// OAuth ///////////////////////////////////////////
     let client_id = env::var("CLIENT_ID")
         .map(ClientId::new)
@@ -64,7 +54,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .expect("Invalid redirect URL"),
         );
 
-    //////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////  DB  ///////////////////////////////////////////
     let db_url: String = env::var("DATABASE_URL").unwrap();
 
@@ -76,7 +65,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     sqlx::migrate!().run(&db).await?;
 
-    //////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////  REDIS  ////////////////////////////////////////
     // Session layer.
     //
@@ -91,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_same_site(SameSite::Lax) // Ensure we send the cookie from the OAuth redirect.
         .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
-    /////////////////////////  State  /////////////////////////
+    /////////////////////////////////  State  ////////////////////////////////////////
     let state = AppState {
         db: db.clone(),
         client,
@@ -103,10 +91,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let web_routes = Router::new()
-        .merge(main::router())
+        .merge(dashboard::router())
         // no need for middleware bc extractor do the same thing
-        // but it is still here for just in case or other need for other projs
-        .layer(middleware::from_fn(web::middlwares::auth))
+        //.layer(middleware::from_fn(web::middlwares::auth))
         .merge(auth::router())
         .merge(oauth::router())
         .layer(middleware::from_fn(web::middlwares::locale))
@@ -118,9 +105,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
-
-    // let listener2 = tokio::net::TcpListener::bind("0.0.0.0:4000").await.unwrap();
-    // axum::serve(listener2, api_routes).await.unwrap();
 
     Ok(())
 }

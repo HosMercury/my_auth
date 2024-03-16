@@ -1,0 +1,10 @@
+<div
+  class="px-2 p-1 mx-2 m-1 rounded-xl bg-gray-700 text-white border-2 w-fit text-sm"
+>
+  <a
+    id="locale"
+    href='?locale={% if locale == "en" %}{{ "ar" }}{% else %}{{ "en" }}{% endif %}'
+  >
+    {% if locale == "en" %}عربي{% else %}En{% endif %}
+  </a>
+</div>

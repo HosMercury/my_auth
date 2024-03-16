@@ -1,26 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html
+  lang='{% if locale == "ar" %}ar{% else %}en{% endif %}'
+  dir='{% if locale == "ar" %}rtl{% else %}ltr{% endif %}'
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
     <link rel="stylesheet" href="assets/output.css" type="text/css" />
     <script defer src="assets/script.js"></script>
-    <title>{% block title %} {{ title }} | Multi Auth {% endblock %}</title>
+    <title>
+      {% block title %} {{ title|capitalize }} | Multi Auth {% endblock %}
+    </title>
   </head>
 
-  <body class="bg-white font-primary">
+  <body class="font-primary">
     {% include "partials/nav.html" %}
     <div id="content" class="min-h-screen w-full p-4">
-      <div class="flex justify-center">
-        <a href="?locale=en">En</a>
-      </div>
       {% block content %} {% endblock %}
     </div>
     <footer
       class="w-full bg-gray-700 text-white h-12 flex items-center justify-center"
     >
-      <span class="">{{ t!("rights_reserved") }}</span>
+      <span class="">{{ t!("rights_reserved")|capitalize }}</span>
     </footer>
   </body>
 </html>

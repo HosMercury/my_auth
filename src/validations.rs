@@ -1,4 +1,3 @@
-use axum_messages::Messages;
 use lazy_static::lazy_static;
 use regex::Regex;
 use sqlx::{query, Pool, Postgres};

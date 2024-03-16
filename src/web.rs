@@ -1,5 +1,5 @@
 pub mod auth;
-pub mod main;
+pub mod dashboard;
 pub mod oauth;
 
 pub(crate) mod keygen {
@@ -8,6 +8,7 @@ pub(crate) mod keygen {
     use rand::{thread_rng, RngCore};
     use rand_core::OsRng;
 
+    #[allow(unused)]
     pub fn keygen() -> String {
         let mut key = [0u8; 64];
         thread_rng().fill_bytes(&mut key);
@@ -166,13 +167,15 @@ pub(crate) mod middlwares {
         let locale_query = Query::<LocaleQuery>::try_from_uri(request.uri());
 
         match locale_query {
-            Ok(q) => {
+            Ok(query) => {
                 let path = request.uri().path();
 
-                let locale_str = match q.0.locale {
+                let locale_str = match query.0.locale {
                     Locale::En => "en",
                     Locale::Ar => "ar",
                 };
+
+                println!("{}", locale_str);
 
                 rust_i18n::set_locale(locale_str);
 

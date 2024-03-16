@@ -5,10 +5,12 @@
       <legend
         class="font-bold my-2 text-3xl text-gray-500 mb-4 w-full border-b pb-2"
       >
-        {{ t!("sign_in") }}
+        {{ t!("sign_in")|capitalize }}
       </legend>
       <div class="my-2">
-        <label for="username" class="form-label">{{ t!("username") }}</label>
+        <label for="username" class="form-label"
+          >{{ t!("username")|capitalize }}</label
+        >
         <input
           required
           name="username"
@@ -18,7 +20,9 @@
         />
       </div>
       <div class="my-2">
-        <label for="password" class="form-label">{{ t!("password") }}</label>
+        <label for="password" class="form-label"
+          >{{ t!("password")|capitalize }}</label
+        >
         <input
           required
           name="password"
@@ -41,7 +45,7 @@
   <div class="m-1 mt-1 border-t pt-1">
     {% include "partials/google.html" %}
     <a href="/signup" class="underline text-gray-800 m-1 w-fit text-center p-1">
-      {{ t!("sign_up") }}
+      {{ t!("sign_up")|capitalize }}
     </a>
   </div>
 </div>

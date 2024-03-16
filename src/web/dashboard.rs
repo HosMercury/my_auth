@@ -14,9 +14,8 @@ pub struct DashboardTemplate {
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/", get(self::get::main))
+        .route("/", get(self::get::dashboard))
         .route("/test", get(self::get::test))
-    //.route("/jese", post(jese))
 }
 
 pub mod get {
@@ -25,7 +24,7 @@ pub mod get {
     use super::*;
 
     #[axum::debug_handler]
-    pub async fn main(user: AuthUser) -> DashboardTemplate {
+    pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
         DashboardTemplate {
             title: "dashboard".to_owned(),
             username: user.name,

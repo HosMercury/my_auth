@@ -1,6 +1,5 @@
 {
   "_version": 1,
-  "hello": "Hello world",
   "age": "age",
   "name": "name",
   "username": "username",

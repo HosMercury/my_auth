@@ -6,12 +6,13 @@
     <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
     <link rel="stylesheet" href="assets/output.css" type="text/css" />
     <script defer src="assets/script.js"></script>
-    <title>{% block title %} {{ title }} | Multi Auth {% endblock %}</title>
+    <title>{% block title %} {{ title|capitalize }} | Multi Auth {% endblock %}</title>
   </head>
 
-  <body class="bg-gray-400 font-primary">
+  <body class='bg-gray-400 font-primary' {% if locale == "ar" %} dir="rtl" {% endif %} >
     <div class="flex flex-col items-center mt-8">
       <div class="bg-white text-center border shadow-md rounded-xl w-1/2 mt-20">
+        
         <div class="flex justify-center">
           <div
             class="p-4 px-6 text-xl text-black bg-white absolute rounded-b-3xl -top-1 shadow-xl"
@@ -30,18 +31,14 @@
         </div>
         {% endif %}
 
-        <div class="absolute px-2 m-4 rounded-xl bg-gray-300 border-2">
-          <a
-            id="locale"
-            class="align-left"
-            href='?locale={% if locale == "en" %}{{ "ar" }}{% else %}{{ "en" }}{% endif %}'
-          >
-            {% if locale == "en" %}عربي{% else %}EN{% endif %}
-          </a>
+        {% include "partials/locale.html" %}
+
+        <div class="px-4">
+          {% block content %} {% endblock %}
         </div>
 
-        {% block content %} {% endblock %}
       </div>
     </div>
+
   </body>
 </html>
