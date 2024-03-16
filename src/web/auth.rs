@@ -44,13 +44,13 @@ pub fn router() -> Router<AppState> {
 
 mod get {
     use super::*;
-    use crate::web::session::{get_messages, get_previous_data};
+    use crate::web::session::{get_flash_messages, get_previous_data};
 
     #[axum::debug_handler]
     pub async fn signin(messages: Messages, session: Session) -> SigninTemplate {
         SigninTemplate {
             title: t!("sign_in").to_string(),
-            messages: get_messages(&messages),
+            messages: get_flash_messages(&messages),
             locale: locale().to_string(),
             previous_data: get_previous_data::<PasswordCreds>(&session).await,
         }
@@ -60,7 +60,7 @@ mod get {
     pub async fn signup(messages: Messages, session: Session) -> SignupTemplate {
         SignupTemplate {
             title: t!("sign_up").to_string(),
-            messages: get_messages(&messages),
+            messages: get_flash_messages(&messages),
             locale: locale().to_string(),
             previous_data: get_previous_data::<SignUp>(&session).await,
         }
@@ -70,8 +70,8 @@ mod get {
 mod post {
     use super::*;
     use crate::{
-        validations::{validate_username, validation_errors},
-        web::session::{save_messages, save_previous_data},
+        validations::{validate_username, validation_flatten_messages},
+        web::session::{save_flash_messages, save_previous_data},
     };
 
     pub async fn password(
@@ -120,8 +120,8 @@ mod post {
             Err(mut e) => {
                 // async validations -- does not work with custom validator crate
                 let errors = validate_username(&mut e, &payload.username, &db).await;
-                let errs = validation_errors(&errors);
-                save_messages(&errs, &messages);
+                let errs = validation_flatten_messages(&errors);
+                save_flash_messages(&errs, &messages);
                 Redirect::to("/signup")
             }
         }

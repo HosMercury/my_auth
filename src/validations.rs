@@ -1,6 +1,7 @@
 use axum_messages::Messages;
 use lazy_static::lazy_static;
 use regex::Regex;
+use serde::Serialize;
 use sqlx::{query, Pool, Postgres};
 use std::{borrow::Cow, collections::HashMap, default::Default};
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
@@ -10,8 +11,36 @@ lazy_static! {
     pub static ref REGEX_USERNAME: Regex = Regex::new(r"[a-zA-Z0-9_-]{8,50}$").unwrap();
 }
 
-pub fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String> {
-    let errors = errs.field_errors();
+pub fn flatten_validation_errs<'a>(
+    e: &'a ValidationErrors,
+    new_errors: &'a mut ValidationErrors,
+) -> &'a ValidationErrors {
+    e.errors().into_iter().for_each(|(field, kind)| {
+        // println!("{}", field);
+        match kind {
+            ValidationErrorsKind::Struct(errors) => {
+                flatten_validation_errs(&*errors, new_errors);
+            }
+            ValidationErrorsKind::List(errors_list) => {
+                errors_list.clone().into_iter().for_each(|(_, errors)| {
+                    flatten_validation_errs(&*errors, new_errors);
+                });
+            }
+            ValidationErrorsKind::Field(errors) => {
+                errors.into_iter().enumerate().for_each(|(_, error)| {
+                    new_errors.add(field, error.clone());
+                });
+            }
+        }
+    });
+
+    new_errors
+}
+
+pub fn validation_flatten_messages(errs: &ValidationErrors) -> HashMap<&str, String> {
+    let mut new_errs = ValidationErrors::new();
+    let errors = flatten_validation_errs(&errs, &mut new_errs).field_errors();
+
     let mut extracted_errors: HashMap<&str, String> = HashMap::new();
 
     errors.into_iter().for_each(|(field, errs)| {
@@ -105,6 +134,32 @@ pub fn validation_errors(errs: &ValidationErrors) -> HashMap<&str, String> {
     extracted_errors
 }
 
+#[derive(Serialize)]
+pub struct JsonValidationError {
+    // code: String,
+    message: String,
+    reason: String,
+    field: String,
+}
+
+#[allow(unused)]
+pub fn json_validatio_errors(errs: &ValidationErrors) -> Vec<JsonValidationError> {
+    let errors = validation_flatten_messages(&errs);
+    let mut json_ready_errors: Vec<JsonValidationError> = Vec::new();
+
+    errors.into_iter().for_each(|(field, e)| {
+        let m = JsonValidationError {
+            // code: e.code.to_string(),
+            message: e,
+            reason: "validation".to_string(),
+            field: field.to_string(),
+        };
+        json_ready_errors.push(m);
+    });
+
+    json_ready_errors
+}
+
 ////////////////////////////////// Validation fns //////////////////////////////
 pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     let mut has_whitespace = false;
@@ -161,54 +216,6 @@ pub async fn email_exists(email: &str, pool: &Pool<Postgres>) -> bool {
 
 ///////////////////////////////////////////////////////////////////////
 ////////////////////////////////// Drafts /////////////////////////////
-#[allow(unused)]
-pub fn flatten_validation_errs<'a>(
-    e: &'a ValidationErrors,
-    new_errors: &'a mut ValidationErrors,
-) -> &'a ValidationErrors {
-    e.errors().into_iter().for_each(|(field, kind)| {
-        // println!("{}", field);
-        match kind {
-            ValidationErrorsKind::Struct(errors) => {
-                flatten_validation_errs(&*errors, new_errors);
-            }
-            ValidationErrorsKind::List(errors_list) => {
-                errors_list.clone().into_iter().for_each(|(_, errors)| {
-                    flatten_validation_errs(&*errors, new_errors);
-                });
-            }
-            ValidationErrorsKind::Field(errors) => {
-                errors.into_iter().enumerate().for_each(|(_, error)| {
-                    new_errors.add(field, error.clone());
-                });
-            }
-        }
-    });
-
-    new_errors
-}
-
-#[allow(unused)]
-pub fn json_validatio_errors(errs: ValidationErrors) {
-    let mut new_errs = ValidationErrors::new();
-
-    let mut new_m: Vec<String> = Vec::new();
-
-    let errs = flatten_validation_errs(&errs, &mut new_errs)
-        .field_errors()
-        .into_iter()
-        .for_each(|(_, errs)| {
-            errs.iter().for_each(|e| {
-                let m = format!(
-                    "{}",
-                    e.message
-                        .clone()
-                        .unwrap_or(Cow::Borrowed("No valdation error message provided"))
-                );
-                new_m.push(m);
-            })
-        });
-}
 
 #[allow(unused)]
 pub fn flash_errors(errs: ValidationErrors, messages: Messages) {

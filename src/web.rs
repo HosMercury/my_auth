@@ -93,7 +93,7 @@ mod session {
         }
     }
 
-    pub fn get_messages(messages: &Messages) -> Vec<String> {
+    pub fn get_flash_messages(messages: &Messages) -> Vec<String> {
         messages
             .clone()
             .into_iter()
@@ -101,7 +101,7 @@ mod session {
             .collect::<Vec<_>>()
     }
 
-    pub fn save_messages(flattened_errors: &HashMap<&str, String>, messages: &Messages) {
+    pub fn save_flash_messages(flattened_errors: &HashMap<&str, String>, messages: &Messages) {
         flattened_errors.into_iter().for_each(|(field, message)| {
             let params: Metadata = HashMap::from([("field".to_string(), json!(field))]);
             messages.clone().push(Level::Error, message, Some(params));

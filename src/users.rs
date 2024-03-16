@@ -128,7 +128,7 @@ pub struct SignUp {
     pub password2: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct ApiUser {
     #[validate(
         regex(code = "regex_name", path = "REGEX_NAME",),
@@ -136,11 +136,11 @@ pub struct ApiUser {
         length(code = "max_length", max = 50)
     )]
     #[serde(deserialize_with = "string_trim")]
-    name: String,
+    pub name: String,
 
     #[validate(email(code = "email"))]
     #[serde(deserialize_with = "string_trim")]
-    email: String,
+    pub email: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -306,7 +306,7 @@ impl User {
 pub struct GoogleOauth;
 
 impl GoogleOauth {
-    pub  fn authorize_url(client: BasicClient) -> (Url, CsrfToken) {
+    pub fn authorize_url(client: BasicClient) -> (Url, CsrfToken) {
         let scopes = vec![
             Scope::new("https://www.googleapis.com/auth/userinfo.email".to_string()),
             Scope::new("https://www.googleapis.com/auth/userinfo.profile".to_string()),
