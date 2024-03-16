@@ -118,7 +118,7 @@ pub struct SignUp {
     pub username: String,
 
     #[validate(
-        custom(code = "regex_password", function = "validate_password",),
+        custom(code = "invalid_password", function = "validate_password",),
         length(code = "min_length", min = 8,),
         length(code = "max_length", max = 500,)
     )]

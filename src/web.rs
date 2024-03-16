@@ -31,6 +31,7 @@ mod session {
     use std::collections::HashMap;
     use tower_sessions::Session;
     use uuid::Uuid;
+    use validator::ValidationErrors;
 
     pub const PREVIOUS_DATA_SESSION_KEY: &str = "previous_data";
     pub const USER_SESSION_KEY: &str = "user";
@@ -101,10 +102,16 @@ mod session {
             .collect::<Vec<_>>()
     }
 
-    pub fn save_flash_messages(flattened_errors: &HashMap<&str, String>, messages: &Messages) {
-        flattened_errors.into_iter().for_each(|(field, message)| {
+    pub fn save_flash_messages(errors: &ValidationErrors, messages: &Messages) {
+        errors.field_errors().into_iter().for_each(|(field, errs)| {
             let params: Metadata = HashMap::from([("field".to_string(), json!(field))]);
-            messages.clone().push(Level::Error, message, Some(params));
+            errs.into_iter().for_each(|e| {
+                messages.clone().push(
+                    Level::Error,
+                    e.message.clone().unwrap_or("unKnown reason".into()),
+                    Some(params.clone()),
+                );
+            });
         });
     }
 }

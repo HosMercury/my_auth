@@ -9,14 +9,13 @@ pub fn router() -> Router<AppState> {
 mod get {}
 
 mod post {
-    use axum::response::{IntoResponse, Response};
+    use axum::response::IntoResponse;
     use axum::{extract::State, Json};
     use serde_json::json;
     use validator::Validate;
 
     use crate::{
         users::{self, ApiUser, User},
-        validations::json_validatio_errors,
         AppState,
     };
 
@@ -43,8 +42,7 @@ mod post {
                 // validate async username
                 // send validation errors as json
 
-                let errs = json_validatio_errors(&mut e);
-                Json(json!(errs)).into_response()
+                Json(json!(e)).into_response()
 
                 // async validations -- does not work with custom validator crate
                 // let errors = validate_username(&mut e, &payload.username, &db).await;

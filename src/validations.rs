@@ -37,128 +37,155 @@ pub fn flatten_validation_errs<'a>(
     new_errors
 }
 
-pub fn validation_flatten_messages(errs: &ValidationErrors) -> HashMap<&str, String> {
-    let mut new_errs = ValidationErrors::new();
-    let errors = flatten_validation_errs(&errs, &mut new_errs).field_errors();
+pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
+    let mut locale_errors: ValidationErrors = ValidationErrors::new();
 
-    let mut extracted_errors: HashMap<&str, String> = HashMap::new();
-
-    errors.into_iter().for_each(|(field, errs)| {
+    errors.field_errors().into_iter().for_each(|(field, errs)| {
         errs.into_iter().for_each(|e| match e.code.as_ref() {
             "regex_name" => {
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    (t!("errors.invalid_name", field = t!(field))).to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!("errors.invalid_name", field = t!(field)).into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
             "regex_username" => {
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    (t!("errors.invalid_username", field = t!(field))).to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!("errors.invalid_username", field = t!(field)).into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
             "username_exists" => {
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    (t!("errors.username_exists", field = t!(field))).to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!("errors.username_exists", field = t!(field)).into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
             "email_exists" => {
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    (t!("errors.email_exists", field = t!(field))).to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!("errors.email_exists", field = t!(field)).into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
             "email" => {
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    (t!("errors.invalid_email", field = t!(field))).to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!("errors.invalid_email", field = t!(field)).into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
-            "regex_passwords" => {
-                extracted_errors.insert(
+            "invalid_password" => {
+                locale_errors.add(
                     field,
-                    t!("errors.invalid_password", field = t!(field)).to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!("errors.invalid_password", field = t!(field)).into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
             "must_match" => {
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    t!("errors.must_match", field = t!(field)).to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!("errors.must_match", field = t!(field)).into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
             "min_length" => {
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    t!(
-                        "errors.min_length",
-                        field = t!(field),
-                        min = e.params["min"]
-                    )
-                    .to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!(
+                            "errors.min_length",
+                            field = t!(field),
+                            min = e.params["min"]
+                        )
+                        .into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
             "max_length" => {
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    t!(
-                        "errors.max_length",
-                        field = t!(field),
-                        max = e.params["max"]
-                    )
-                    .to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!(
+                            "errors.max_length",
+                            field = t!(field),
+                            max = e.params["max"]
+                        )
+                        .into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
             "range" => {
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    t!(
-                        "errors.range",
-                        field = t!(field),
-                        min = e.params["min"],
-                        max = e.params["max"]
-                    )
-                    .to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!("errors.range", field = t!(field)).into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
             _ => {
                 // Unknown code - just in case
-                extracted_errors.insert(
+                locale_errors.add(
                     field,
-                    t!("errors.invalid_field", field = t!(field)).to_string(),
+                    ValidationError {
+                        code: e.code.clone(),
+                        message: t!("errors.invalid_field", field = t!(field)).into(),
+                        params: HashMap::from([("field".into(), field.into())]),
+                    },
                 );
             }
         })
     });
 
-    extracted_errors
+    locale_errors
 }
 
-#[derive(Serialize)]
-pub struct JsonValidationError {
-    // code: String,
-    message: String,
-    reason: String,
-    field: String,
-}
+// #[allow(unused)]
+// pub fn json_validatio_errors(errs: &ValidationErrors) -> Vec<ValidationError> {
+//     let errors = validation_messages(&errs);
+//     let mut json_ready_errors: Vec<ValidationError> = Vec::new();
 
-#[allow(unused)]
-pub fn json_validatio_errors(errs: &ValidationErrors) -> Vec<JsonValidationError> {
-    let errors = validation_flatten_messages(&errs);
-    let mut json_ready_errors: Vec<JsonValidationError> = Vec::new();
+//     errors.field_errors().into_iter().for_each(|(field, e)| {
+//         let m = ValidationError {
+//             // code: e.code.to_string(),
+//             message: e,
+//             code: e.code.clone(),
+//             params: e.params,
+//         };
+//         json_ready_errors.push(m);
+//     });
 
-    errors.into_iter().for_each(|(field, e)| {
-        let m = JsonValidationError {
-            // code: e.code.to_string(),
-            message: e,
-            reason: "validation".to_string(),
-            field: field.to_string(),
-        };
-        json_ready_errors.push(m);
-    });
-
-    json_ready_errors
-}
+//     json_ready_errors
+// }
 
 ////////////////////////////////// Validation fns //////////////////////////////
 pub fn validate_password(password: &str) -> Result<(), ValidationError> {
@@ -177,7 +204,7 @@ pub fn validate_password(password: &str) -> Result<(), ValidationError> {
     if !has_whitespace && has_upper && has_lower && has_digit {
         Ok(())
     } else {
-        Err(ValidationError::new("Password Validation Failed"))
+        Err(ValidationError::new("invalid_password"))
     }
 }
 
