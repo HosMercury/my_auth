@@ -36,6 +36,7 @@ pub fn flatten_validation_errs<'a>(
     new_errors
 }
 
+// add Localized messages to validation errors
 pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
     let mut locale_errors: ValidationErrors = ValidationErrors::new();
 
@@ -166,23 +167,6 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
     });
 
     locale_errors
-}
-
-pub fn json_validatio_errors(errors: &ValidationErrors) -> Vec<ValidationError> {
-    let mut json_ready_errors: Vec<ValidationError> = Vec::new();
-
-    errors.field_errors().into_iter().for_each(|(field, errs)| {
-        errs.into_iter().for_each(|e| {
-            let m = ValidationError {
-                message: e.message.clone().into(),
-                code: e.code.clone(),
-                params: e.params.clone(),
-            };
-            json_ready_errors.push(m);
-        })
-    });
-
-    json_ready_errors
 }
 
 ////////////////////////////////// Validation fns //////////////////////////////
