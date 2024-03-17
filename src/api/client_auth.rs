@@ -11,7 +11,7 @@ mod get {}
 mod post {
     use crate::{
         users::{self, ApiUser, User},
-        validations::validation_messages,
+        validations::{validate_email_exists, validation_messages},
         AppState,
     };
     use axum::response::IntoResponse;
@@ -38,7 +38,7 @@ mod post {
                     }
                 }
             }
-            Err(e) => {
+            Err(mut e) => {
                 // validate async username
                 // send validation errors as json
 

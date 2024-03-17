@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 use sqlx::{query, Pool, Postgres};
-use std::{collections::HashMap, default::Default};
+use std::collections::HashMap;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
 lazy_static! {
@@ -147,22 +147,19 @@ pub fn flatten_validation_errs<'a>(
     e: &'a ValidationErrors,
     new_errors: &'a mut ValidationErrors,
 ) -> &'a ValidationErrors {
-    e.errors().into_iter().for_each(|(field, kind)| {
-        // println!("{}", field);
-        match kind {
-            ValidationErrorsKind::Struct(errors) => {
+    e.errors().into_iter().for_each(|(field, kind)| match kind {
+        ValidationErrorsKind::Struct(errors) => {
+            flatten_validation_errs(&*errors, new_errors);
+        }
+        ValidationErrorsKind::List(errors_list) => {
+            errors_list.clone().into_iter().for_each(|(_, errors)| {
                 flatten_validation_errs(&*errors, new_errors);
-            }
-            ValidationErrorsKind::List(errors_list) => {
-                errors_list.clone().into_iter().for_each(|(_, errors)| {
-                    flatten_validation_errs(&*errors, new_errors);
-                });
-            }
-            ValidationErrorsKind::Field(errors) => {
-                errors.into_iter().enumerate().for_each(|(_, error)| {
-                    new_errors.add(field, error.clone());
-                });
-            }
+            });
+        }
+        ValidationErrorsKind::Field(errors) => {
+            errors.into_iter().enumerate().for_each(|(_, error)| {
+                new_errors.add(field, error.clone());
+            });
         }
     });
 
@@ -215,11 +212,27 @@ pub async fn validate_username<'a>(
     }
     errors
 }
-
-#[allow(unused)]
 pub async fn email_exists(email: &str, pool: &Pool<Postgres>) -> bool {
     query!("SELECT email FROM users WHERE email = $1", email)
         .fetch_one(pool)
         .await
         .is_ok()
+}
+
+pub async fn validate_email_exists(
+    mut errors: ValidationErrors,
+    email: &str,
+    db: &Pool<Postgres>,
+) -> ValidationErrors {
+    if email_exists(email, db).await {
+        errors.add(
+            "email",
+            ValidationError {
+                code: "email_exists".into(),
+                message: Some(t!("email_exists").into()),
+                params: HashMap::from([("value".into(), email.into())]),
+            },
+        )
+    }
+    errors
 }
