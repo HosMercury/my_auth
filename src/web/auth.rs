@@ -70,7 +70,7 @@ mod get {
 mod post {
     use super::*;
     use crate::{
-        validations::{validate_username, validation_messages},
+        validations::{validate_username_exists, validation_messages},
         web::session::{save_flash_messages, save_previous_data},
     };
 
@@ -119,7 +119,7 @@ mod post {
             }
             Err(mut e) => {
                 // async validations -- does not work with custom validator crate
-                let errors = validate_username(&mut e, &payload.username, &db).await;
+                let errors = validate_username_exists(&mut e, &payload.username, &db).await;
                 let errs = validation_messages(&errors);
                 save_flash_messages(&errs, &messages);
                 Redirect::to("/signup")

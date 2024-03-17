@@ -44,6 +44,7 @@ mod post {
 
                 // println!("json errs {:?}", json!(e));
 
+                let e = validate_email_exists(&mut e, &payload.email, &db).await;
                 Json(json!(validation_messages(&e))).into_response()
 
                 // async validations -- does not work with custom validator crate

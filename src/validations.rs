@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
 lazy_static! {
-    pub static ref REGEX_NAME: Regex = Regex::new(r"[a-zA-Z ]{8,50}$").unwrap();
-    pub static ref REGEX_USERNAME: Regex = Regex::new(r"[a-zA-Z0-9_-]{8,50}$").unwrap();
+    pub static ref REGEX_NAME: Regex = Regex::new(r"^[A-Za-z ]+$").unwrap();
+    pub static ref REGEX_USERNAME: Regex = Regex::new(r"^[a-zA-Z0-9_]{8,50}$").unwrap();
 }
 
 // add Localized messages to validation errors
@@ -20,7 +20,7 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
                     field,
                     ValidationError {
                         code: e.code.clone(),
-                        message: t!("errors.invalid_name", field = t!(field)).into(),
+                        message: t!("errors.invalid_name").into(),
                         params: HashMap::from([("field".into(), field.into())]),
                     },
                 );
@@ -30,7 +30,7 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
                     field,
                     ValidationError {
                         code: e.code.clone(),
-                        message: t!("errors.invalid_username", field = t!(field)).into(),
+                        message: t!("errors.invalid_username").into(),
                         params: HashMap::from([("field".into(), field.into())]),
                     },
                 );
@@ -40,7 +40,7 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
                     field,
                     ValidationError {
                         code: e.code.clone(),
-                        message: t!("errors.username_exists", field = t!(field)).into(),
+                        message: t!("errors.username_exists").into(),
                         params: HashMap::from([("field".into(), field.into())]),
                     },
                 );
@@ -50,7 +50,7 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
                     field,
                     ValidationError {
                         code: e.code.clone(),
-                        message: t!("errors.email_exists", field = t!(field)).into(),
+                        message: t!("errors.email_exists").into(),
                         params: HashMap::from([("field".into(), field.into())]),
                     },
                 );
@@ -60,7 +60,7 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
                     field,
                     ValidationError {
                         code: e.code.clone(),
-                        message: t!("errors.invalid_email", field = t!(field)).into(),
+                        message: t!("errors.invalid_email").into(),
                         params: HashMap::from([("field".into(), field.into())]),
                     },
                 );
@@ -70,7 +70,7 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
                     field,
                     ValidationError {
                         code: e.code.clone(),
-                        message: t!("errors.invalid_password", field = t!(field)).into(),
+                        message: t!("errors.invalid_password").into(),
                         params: HashMap::from([("field".into(), field.into())]),
                     },
                 );
@@ -80,7 +80,7 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
                     field,
                     ValidationError {
                         code: e.code.clone(),
-                        message: t!("errors.must_match", field = t!(field)).into(),
+                        message: t!("errors.must_match").into(),
                         params: HashMap::from([("field".into(), field.into())]),
                     },
                 );
@@ -120,7 +120,13 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
                     field,
                     ValidationError {
                         code: e.code.clone(),
-                        message: t!("errors.range", field = t!(field)).into(),
+                        message: t!(
+                            "errors.range",
+                            field = t!(field),
+                            max = e.params["min"],
+                            max = e.params["max"]
+                        )
+                        .into(),
                         params: HashMap::from([("field".into(), field.into())]),
                     },
                 );
@@ -195,7 +201,7 @@ pub async fn username_exists(username: &str, pool: &Pool<Postgres>) -> bool {
         .is_ok()
 }
 
-pub async fn validate_username<'a>(
+pub async fn validate_username_exists<'a>(
     errors: &'a mut ValidationErrors,
     username: &str,
     db: &Pool<Postgres>,
@@ -219,11 +225,11 @@ pub async fn email_exists(email: &str, pool: &Pool<Postgres>) -> bool {
         .is_ok()
 }
 
-pub async fn validate_email_exists(
-    mut errors: ValidationErrors,
+pub async fn validate_email_exists<'a>(
+    errors: &'a mut ValidationErrors,
     email: &str,
     db: &Pool<Postgres>,
-) -> ValidationErrors {
+) -> &'a ValidationErrors {
     if email_exists(email, db).await {
         errors.add(
             "email",
