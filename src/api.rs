@@ -20,8 +20,9 @@ pub mod middlwares {
         match auth_header {
             Some(api_token) => {
                 let result = query!(
-                    "SELECT access_token FROM users WHERE access_token = $1",
-                    api_token.replace("Bearer ", "")
+                    "SELECT access_token FROM users WHERE access_token = $1 AND provider = $2",
+                    api_token.replace("Bearer", "").trim().to_string(),
+                    "api"
                 )
                 .fetch_one(&state.db)
                 .await;
