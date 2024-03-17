@@ -14,133 +14,137 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
     let mut locale_errors: ValidationErrors = ValidationErrors::new();
 
     errors.field_errors().into_iter().for_each(|(field, errs)| {
-        errs.into_iter().for_each(|e| match e.code.as_ref() {
-            "regex_name" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!("errors.invalid_name").into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            "regex_username" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!("errors.invalid_username").into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            "username_exists" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!("errors.username_exists").into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            "email_exists" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!("errors.email_exists").into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            "email" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!("errors.invalid_email").into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            "invalid_password" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!("errors.invalid_password").into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            "must_match" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!("errors.must_match").into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            "min_length" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!(
-                            "errors.min_length",
-                            field = t!(field),
-                            min = e.params["min"]
-                        )
-                        .into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            "max_length" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!(
-                            "errors.max_length",
-                            field = t!(field),
-                            max = e.params["max"]
-                        )
-                        .into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            "range" => {
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!(
-                            "errors.range",
-                            field = t!(field),
-                            max = e.params["min"],
-                            max = e.params["max"]
-                        )
-                        .into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
-            }
-            _ => {
-                // Unknown code - just in case
-                locale_errors.add(
-                    field,
-                    ValidationError {
-                        code: e.code.clone(),
-                        message: t!("errors.invalid_field", field = t!(field)).into(),
-                        params: HashMap::from([("field".into(), field.into())]),
-                    },
-                );
+        errs.into_iter().for_each(|e| {
+            let code = e.code.clone();
+            let params = e.params.clone();
+            match e.code.as_ref() {
+                "regex_name" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!("errors.invalid_name").into(),
+                            params,
+                        },
+                    );
+                }
+                "regex_username" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!("errors.invalid_username").into(),
+                            params,
+                        },
+                    );
+                }
+                "username_exists" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!("errors.username_exists").into(),
+                            params,
+                        },
+                    );
+                }
+                "email_exists" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!("errors.email_exists").into(),
+                            params,
+                        },
+                    );
+                }
+                "email" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!("errors.invalid_email").into(),
+                            params,
+                        },
+                    );
+                }
+                "invalid_password" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!("errors.invalid_password").into(),
+                            params,
+                        },
+                    );
+                }
+                "must_match" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!("errors.must_match").into(),
+                            params,
+                        },
+                    );
+                }
+                "min_length" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!(
+                                "errors.min_length",
+                                field = t!(field),
+                                min = e.params["min"]
+                            )
+                            .into(),
+                            params,
+                        },
+                    );
+                }
+                "max_length" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!(
+                                "errors.max_length",
+                                field = t!(field),
+                                max = e.params["max"]
+                            )
+                            .into(),
+                            params,
+                        },
+                    );
+                }
+                "range" => {
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!(
+                                "errors.range",
+                                field = t!(field),
+                                max = e.params["min"],
+                                max = e.params["max"]
+                            )
+                            .into(),
+                            params,
+                        },
+                    );
+                }
+                _ => {
+                    // Unknown code - just in case
+                    locale_errors.add(
+                        field,
+                        ValidationError {
+                            code,
+                            message: t!("errors.invalid_field", field = t!(field)).into(),
+                            params,
+                        },
+                    );
+                }
             }
         })
     });
