@@ -11,7 +11,7 @@ use axum::{
     routing::{get, post},
     Form, Router,
 };
-use axum_messages::Messages;
+use axum_messages::{Message, Messages};
 use rust_i18n::locale;
 use tower_sessions::Session;
 use validator::Validate;
@@ -20,7 +20,7 @@ use validator::Validate;
 #[template(path = "pages/signin.html")]
 struct SigninTemplate {
     title: String,
-    messages: Vec<String>,
+    messages: Vec<Message>,
     locale: String,
     previous_data: PasswordCreds,
 }
@@ -29,7 +29,7 @@ struct SigninTemplate {
 #[template(path = "pages/signup.html")]
 pub struct SignupTemplate {
     title: String,
-    messages: Vec<String>,
+    messages: Vec<Message>,
     locale: String,
     previous_data: SignUp,
 }
@@ -58,6 +58,7 @@ mod get {
 
     #[axum::debug_handler]
     pub async fn signup(messages: Messages, session: Session) -> SignupTemplate {
+        println!("{:#?}", messages);
         SignupTemplate {
             title: t!("sign_up").to_string(),
             messages: get_flash_messages(&messages),

@@ -25,14 +25,14 @@ pub(crate) mod keygen {
 
 mod session {
     use crate::users::User;
-    use axum_messages::{Level, Messages, Metadata};
+    use axum_messages::{Level, Message, Messages, Metadata};
     use oauth2::CsrfToken;
     use serde::{de::DeserializeOwned, Deserialize, Serialize};
     use serde_json::json;
     use std::collections::HashMap;
     use tower_sessions::Session;
     use uuid::Uuid;
-    use validator::ValidationErrors;
+    use validator::{ValidationError, ValidationErrors};
 
     pub const PREVIOUS_DATA_SESSION_KEY: &str = "previous_data";
     pub const USER_SESSION_KEY: &str = "user";
@@ -95,25 +95,23 @@ mod session {
         }
     }
 
-    pub fn get_flash_messages(messages: &Messages) -> Vec<String> {
-        messages
-            .clone()
-            .into_iter()
-            .map(|message| format!("{}", message))
-            .collect::<Vec<_>>()
-    }
-
     pub fn save_flash_messages(errors: &ValidationErrors, messages: &Messages) {
-        errors.field_errors().into_iter().for_each(|(field, errs)| {
+        errors.field_errors().iter().for_each(|(field, errs)| {
             let params: Metadata = HashMap::from([("field".to_string(), json!(field))]);
-            errs.into_iter().for_each(|e| {
+            errs.iter().for_each(|e| {
                 messages.clone().push(
                     Level::Error,
-                    e.message.clone().unwrap_or("unKnown reason".into()),
+                    e.message
+                        .clone()
+                        .unwrap_or(t!("errors.unknown_reason").into()),
                     Some(params.clone()),
                 );
             });
         });
+    }
+
+    pub fn get_flash_messages(messages: &Messages) -> Vec<Message> {
+        messages.clone().into_iter().map(|m| m).collect::<Vec<_>>()
     }
 }
 
@@ -200,10 +198,9 @@ pub(crate) mod middlwares {
 }
 
 mod extractors {
+    use super::session::{AuthUser, USER_SESSION_KEY};
     use axum::{async_trait, extract::FromRequestParts, http::request::Parts, response::Redirect};
     use tower_sessions::Session;
-
-    use super::session::{AuthUser, USER_SESSION_KEY};
 
     #[async_trait]
     impl<S> FromRequestParts<S> for AuthUser

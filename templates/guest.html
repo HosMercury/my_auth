@@ -21,16 +21,17 @@
           </div>
         </div>
 
-        {% if !messages.is_empty() %}
+        {% if !messages.is_empty() %}          
         <div
           class="shadow bg-red-500 text-white border border-red-800 text-center rounded-lg m-2"
         >
           {% for message in messages %}
-          <p class="p-1 m-1">{{ message }}</p>
+          <div class="my-1">
+            {{ message }} <br />
+          </div>
           {% endfor %}
         </div>
-        {% endif %}
-
+        {%  endif  %}
 
         <div class="px-4">
           {% block content %} {% endblock %}

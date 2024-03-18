@@ -29,6 +29,7 @@
     "email_exists": "This email is already in use",
     "username_exists": "Username already exists",
     "invalid_field": "This field %{field} is not accepted",
-    "invalid_credentials": "These credentials do not match ours"
+    "invalid_credentials": "These credentials do not match ours",
+    "unknown_reason": "UnKnown reason"
   }
 }
