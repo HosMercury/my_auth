@@ -32,7 +32,7 @@ mod session {
     use std::collections::HashMap;
     use tower_sessions::Session;
     use uuid::Uuid;
-    use validator::{ValidationError, ValidationErrors};
+    use validator::ValidationErrors;
 
     pub const PREVIOUS_DATA_SESSION_KEY: &str = "previous_data";
     pub const USER_SESSION_KEY: &str = "user";
@@ -95,7 +95,7 @@ mod session {
         }
     }
 
-    pub fn save_flash_messages(errors: &ValidationErrors, messages: &Messages) {
+    pub fn save_session_validation_messages(errors: &ValidationErrors, messages: &Messages) {
         errors.field_errors().iter().for_each(|(field, errs)| {
             let params: Metadata = HashMap::from([("field".to_string(), json!(field))]);
             errs.iter().for_each(|e| {
@@ -110,7 +110,7 @@ mod session {
         });
     }
 
-    pub fn get_flash_messages(messages: &Messages) -> Vec<Message> {
+    pub fn get_session_validation_messages(messages: &Messages) -> Vec<Message> {
         messages.clone().into_iter().map(|m| m).collect::<Vec<_>>()
     }
 }

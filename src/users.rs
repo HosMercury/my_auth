@@ -9,7 +9,7 @@ use password_auth::{generate_hash, verify_password};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_trim::*;
-use sqlx::{query_as, FromRow, PgPool};
+use sqlx::{query, query_as, FromRow, PgPool};
 use std::fmt::Debug;
 use time::OffsetDateTime;
 use tokio::task;
@@ -166,12 +166,16 @@ impl User {
     ) -> Result<Option<User>, AuthError> {
         match creds {
             Credentials::Password(PasswordCreds { username, password }) => {
-                let user: Option<Self> =
-                    query_as("SELECT * FROM users WHERE username = $1 AND password IS NOT NULL")
-                        .bind(username)
-                        .fetch_optional(&db)
-                        .await
-                        .map_err(AuthError::Sqlx)?;
+                let user = query_as!(
+                    Self,
+                    r#"SELECT * FROM users WHERE username = $1 
+                    AND password IS NOT NULL 
+                    AND deleted_at IS NULL"#,
+                    username,
+                )
+                .fetch_optional(&db)
+                .await
+                .map_err(AuthError::Sqlx)?;
 
                 // Verifying the password is blocking and potentially slow, so we'll do so via
                 let user_result = task::spawn_blocking(|| {
@@ -229,18 +233,20 @@ impl User {
                     .map_err(AuthError::Reqwest)?;
 
                 // Persist user in our database so we can use `get_user`.
-                let user: User = query_as(
+                let user = query_as!(
+                    User,
                     r#"
-                        INSERT INTO users (name, email, access_token)
-                        VALUES ($1, $2, $3)
+                        INSERT INTO users (name, email, access_token, provider)
+                        VALUES ($1, $2, $3, $4)
                         ON CONFLICT(email) DO UPDATE
                         SET access_token = excluded.access_token
                         RETURNING *
                     "#,
+                    user_info.given_name,
+                    user_info.email,
+                    token_response.access_token().secret(),
+                    "google"
                 )
-                .bind(user_info.given_name)
-                .bind(user_info.email)
-                .bind(token_response.access_token().secret())
                 .fetch_one(&db)
                 .await
                 .map_err(AuthError::Sqlx)?;
@@ -299,6 +305,23 @@ impl User {
 
                 Ok(user)
             }
+        }
+    }
+
+    pub async fn deactivate(&self, db: PgPool) -> Result<Option<User>, AuthError> {
+        let result = query_as!(
+            User,
+            r#"UPDATE users SET deleted_at = $1 WHERE id = $2 RETURNING *"#,
+            OffsetDateTime::now_utc(),
+            self.id
+        )
+        .fetch_optional(&db)
+        .await
+        .map_err(AuthError::Sqlx)?;
+
+        match result {
+            Some(user) => Ok(Some(user)),
+            None => Ok(None),
         }
     }
 }

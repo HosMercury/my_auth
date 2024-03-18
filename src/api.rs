@@ -20,7 +20,10 @@ pub mod middlwares {
         match auth_header {
             Some(api_token) => {
                 let result = query!(
-                    "SELECT access_token FROM users WHERE access_token = $1 AND provider = $2",
+                    "SELECT access_token FROM users 
+                    WHERE access_token = $1 
+                    AND provider = $2 
+                    AND deleted_at IS NULL",
                     api_token.replace("Bearer", "").trim().to_string(),
                     "api"
                 )
