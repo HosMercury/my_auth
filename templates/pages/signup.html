@@ -9,12 +9,20 @@
       </legend>
 
       {% include "partials/locale.html" %}
-      
+
       <div class="my-2">
         <label for="name" value="{{ previous_data.name }}" class="form-label"
           >{{ t!("name")|capitalize }}</label
         >
-        <input required name="name" id="name" value="foo" class="form-input" />
+        <input
+          required
+          name="name"
+          id="name"
+          minlength="8"
+          maxlength="50"
+          placeholder="Hossam Maher"
+          class="form-input"
+        />
       </div>
       <div class="my-2">
         <label for="username" class="form-label"
@@ -24,6 +32,8 @@
           required
           name="username"
           id="username"
+          minlength="8"
+          maxlength="50"
           placeholder="ferris"
           value="{{ previous_data.username }}"
           class="form-input"
@@ -42,7 +52,9 @@
           name="password"
           id="password"
           type="password"
-          placeholder="hunter42H"
+          minlength="8"
+          maxlength="50"
+          placeholder="hunter42"
           class="form-input"
         />
       </div>
@@ -55,6 +67,8 @@
           name="password2"
           id="password2"
           type="password"
+          minlength="8"
+          maxlength="50"
           placeholder="hunter42H"
           class="form-input"
         />

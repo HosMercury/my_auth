@@ -18,6 +18,8 @@
           required
           name="username"
           id="username"
+          minlength="8"
+          maxlength="50"
           value="{{ previous_data.username }}"
           class="form-input"
         />
@@ -32,6 +34,9 @@
           id="password"
           type="password"
           value=""
+          minlength="8"
+          maxlength="50"
+          pattern="^[A-Za-z ]+$"
           placeholder="hunter42"
           class="form-input"
         />
