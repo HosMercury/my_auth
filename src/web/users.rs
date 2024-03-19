@@ -5,8 +5,17 @@ use axum::{routing::get, Router};
 use rust_i18n::locale;
 
 #[derive(Template)]
+#[template(path = "pages/users/index.html")]
+pub struct IndexTemplate {
+    title: String,
+    username: String,
+    locale: String,
+    user: Vec<User>,
+}
+
+#[derive(Template)]
 #[template(path = "pages/users/show.html")]
-pub struct UserInfoTemplate {
+pub struct ShowTemplate {
     title: String,
     username: String,
     locale: String,
@@ -14,10 +23,7 @@ pub struct UserInfoTemplate {
 }
 
 pub fn router() -> Router<AppState> {
-    Router::new().nest(
-        "/users",
-        Router::new().route("/:id", get(self::get::user_info)),
-    )
+    Router::new().nest("/users", Router::new().route("/:id", get(self::get::show)))
 }
 
 pub mod get {
@@ -31,7 +37,7 @@ pub mod get {
     use axum_messages::Messages;
     use uuid::Uuid;
 
-    pub async fn user_info(
+    pub async fn show(
         auth_user: User,
         messages: Messages,
         Path(id): Path<Uuid>,
@@ -41,7 +47,7 @@ pub mod get {
 
         match result {
             Ok(record) => match record {
-                Some(user) => UserInfoTemplate {
+                Some(user) => ShowTemplate {
                     title: format!("Show user {}", user.name),
                     username: auth_user.name,
                     locale: locale().to_string(),

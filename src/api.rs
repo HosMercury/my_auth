@@ -1,5 +1,18 @@
+use axum::{middleware, Router};
+
+use crate::AppState;
+
 pub mod client_auth;
 pub mod main;
+
+pub fn router(app_state: &AppState) -> Router<AppState> {
+    Router::new()
+        .nest("/api", main::router().merge(client_auth::router()))
+        .layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            middlwares::auth,
+        ))
+}
 
 pub mod middlwares {
     use axum::{

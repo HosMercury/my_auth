@@ -1,9 +1,31 @@
+use axum::{middleware, Router};
+use axum_messages::MessagesManagerLayer;
+use tower_http::services::ServeDir;
+use tower_sessions::SessionManagerLayer;
+use tower_sessions_redis_store::{fred::clients::RedisPool, RedisStore};
+
+use crate::AppState;
+
 pub mod auth;
 pub mod dashboard;
 pub mod oauth;
 pub mod users;
 
-pub(crate) mod keygen {
+pub fn router(session_layer: SessionManagerLayer<RedisStore<RedisPool>>) -> Router<AppState> {
+    Router::new()
+        .merge(dashboard::router())
+        .merge(users::router())
+        // no need for middleware bc extractor do the same thing
+        //.layer(middleware::from_fn(web::middlwares::auth))
+        .merge(auth::router())
+        .merge(oauth::router())
+        .layer(middleware::from_fn(self::middlwares::locale))
+        .layer(MessagesManagerLayer)
+        .layer(session_layer)
+        .nest_service("/assets", ServeDir::new("assets"))
+}
+
+pub mod keygen {
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
     use base64::prelude::*;
     use rand::{thread_rng, RngCore};
@@ -104,7 +126,7 @@ mod session {
     }
 }
 
-pub(crate) mod middlwares {
+pub mod middlwares {
     use askama_axum::IntoResponse;
     use axum::{
         extract::{Query, Request},
