@@ -1,22 +1,22 @@
 CREATE TABLE IF NOT EXISTS roles (
-    id SERIAl PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS permissions (
-    id SERIAl PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS users_roles (
     user_id UUID REFERENCES users(id),
-    role_id INTEGER REFERENCES roles(id),
+    role_id UUID REFERENCES roles(id),
     PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE IF NOT EXISTS roles_permissions (
-    role_id INTEGER REFERENCES roles(id),
-    permission_id INTEGER REFERENCES permissions(id),
+    role_id UUID REFERENCES roles(id),
+    permission_id UUID REFERENCES permissions(id),
     primary key (role_id, permission_id)
 );
 

@@ -338,6 +338,99 @@ impl User {
     }
 }
 
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct Role {
+    pub id: Uuid,
+    pub name: String,
+}
+
+impl Role {
+    pub async fn add(name: String, db: &PgPool) -> Result<Role, AuthError> {
+        let role = query_as!(
+            Role,
+            "INSERT INTO roles (name) VALUES ($1) RETURNING *",
+            name
+        )
+        .fetch_one(db)
+        .await
+        .map_err(AuthError::Sqlx)?;
+
+        Ok(role)
+    }
+
+    pub async fn find_by_id(id: Uuid, db: &PgPool) -> Result<Option<Role>, AuthError> {
+        let result = query_as!(Role, "SELECT * FROM roles WHERE id = $1", id)
+            .fetch_optional(db)
+            .await
+            .map_err(AuthError::Sqlx)?;
+
+        match result {
+            Some(role) => Ok(Some(role)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn update(id: Uuid, name: String, db: &PgPool) -> Result<Role, AuthError> {
+        let role = query_as!(
+            Role,
+            "UPDATE roles SET name = $2 WHERE id = $1 RETURNING *",
+            id,
+            name
+        )
+        .fetch_one(db)
+        .await
+        .map_err(AuthError::Sqlx)?;
+
+        Ok(role)
+    }
+}
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct Permission {
+    pub id: Uuid,
+    pub name: String,
+}
+
+impl Permission {
+    pub async fn add(name: String, db: &PgPool) -> Result<Permission, AuthError> {
+        let permission = query_as!(
+            Permission,
+            "INSERT INTO permissions (name) VALUES ($1) RETURNING *",
+            name
+        )
+        .fetch_one(db)
+        .await
+        .map_err(AuthError::Sqlx)?;
+
+        Ok(permission)
+    }
+
+    pub async fn find_by_id(id: Uuid, db: &PgPool) -> Result<Option<Permission>, AuthError> {
+        let result = query_as!(Permission, "SELECT * FROM permissions WHERE id = $1", id)
+            .fetch_optional(db)
+            .await
+            .map_err(AuthError::Sqlx)?;
+
+        match result {
+            Some(permission) => Ok(Some(permission)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn update(id: Uuid, name: String, db: &PgPool) -> Result<Permission, AuthError> {
+        let permission = query_as!(
+            Permission,
+            "UPDATE permissions SET name = $2 WHERE id = $1 RETURNING *",
+            id,
+            name
+        )
+        .fetch_one(db)
+        .await
+        .map_err(AuthError::Sqlx)?;
+
+        Ok(permission)
+    }
+}
+
 pub struct GoogleOauth;
 
 impl GoogleOauth {
