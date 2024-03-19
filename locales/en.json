@@ -30,6 +30,7 @@
     "username_exists": "Username already exists",
     "invalid_field": "This field %{field} is not accepted",
     "invalid_credentials": "These credentials do not match ours",
-    "unknown_reason": "UnKnown reason"
+    "unknown_reason": "UnKnown reason",
+    "user_not_found": "User not found"
   }
 }

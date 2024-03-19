@@ -97,6 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let web_routes = Router::new()
         .merge(dashboard::router())
+        .merge(web::users::router())
         // no need for middleware bc extractor do the same thing
         //.layer(middleware::from_fn(web::middlwares::auth))
         .merge(auth::router())

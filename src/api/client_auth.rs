@@ -26,7 +26,7 @@ mod post {
     ) -> impl IntoResponse {
         match payload.validate() {
             Ok(_) => {
-                match User::register(users::RegisterUser::ApiUser(payload.clone()), db).await {
+                match User::register(users::RegisterUser::ApiUser(payload.clone()), &db).await {
                     Ok(_) => {
                         // will do the db stuff
                         // then send the response

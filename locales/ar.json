@@ -30,6 +30,7 @@
     "username_exists": "هذا الإسم مسجل مسبقا",
     "invalid_field": "هذا الحقل %{field} غير مقبول",
     "invalid_credentials": "هذه البيانات لا تطابق بياناتنا",
-    "unknown_reason": "سبب غير مغروف"
+    "unknown_reason": "سبب غير مغروف",
+    "user_not_found": "هذا المستخدم غير متواجد"
   }
 }

@@ -24,10 +24,10 @@ pub mod get {
     use super::*;
 
     #[axum::debug_handler]
-    pub async fn dashboard(user: AuthUser) -> DashboardTemplate {
+    pub async fn dashboard(auth_user: AuthUser) -> DashboardTemplate {
         DashboardTemplate {
             title: "dashboard".to_owned(),
-            username: user.name,
+            username: auth_user.name,
             locale: locale().to_string(),
         }
     }

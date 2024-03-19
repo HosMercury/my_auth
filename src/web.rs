@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod dashboard;
 pub mod oauth;
+pub mod users;
 
 pub(crate) mod keygen {
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;

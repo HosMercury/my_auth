@@ -81,7 +81,7 @@ mod post {
         Form(payload): Form<PasswordCreds>,
     ) -> impl IntoResponse {
         // No validation needed here -- think again
-        match User::authenticate(Credentials::Password(payload.clone()), db, client).await {
+        match User::authenticate(Credentials::Password(payload.clone()), &db, client).await {
             Ok(Some(user)) => {
                 save_session_user(user, &session).await;
                 Redirect::to("/").into_response()
@@ -109,7 +109,7 @@ mod post {
 
         match payload.validate() {
             Ok(_) => {
-                match User::register(users::RegisterUser::WebUser(payload.clone()), db).await {
+                match User::register(users::RegisterUser::WebUser(payload.clone()), &db).await {
                     Ok(_) => Redirect::to("/"),
                     Err(_) => {
                         messages.error(t!("errors.system_error"));

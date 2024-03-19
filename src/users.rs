@@ -9,7 +9,7 @@ use password_auth::{generate_hash, verify_password};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_trim::*;
-use sqlx::{query, query_as, FromRow, PgPool};
+use sqlx::{query_as, FromRow, PgPool};
 use std::fmt::Debug;
 use time::OffsetDateTime;
 use tokio::task;
@@ -161,7 +161,7 @@ pub enum AuthError {
 impl User {
     pub async fn authenticate(
         creds: Credentials,
-        db: PgPool,
+        db: &PgPool,
         client: BasicClient,
     ) -> Result<Option<User>, AuthError> {
         match creds {
@@ -173,7 +173,7 @@ impl User {
                     AND deleted_at IS NULL"#,
                     username,
                 )
-                .fetch_optional(&db)
+                .fetch_optional(db)
                 .await
                 .map_err(AuthError::Sqlx)?;
 
@@ -247,7 +247,7 @@ impl User {
                     token_response.access_token().secret(),
                     "google"
                 )
-                .fetch_one(&db)
+                .fetch_one(db)
                 .await
                 .map_err(AuthError::Sqlx)?;
 
@@ -256,7 +256,7 @@ impl User {
         }
     }
 
-    pub async fn register(payload: RegisterUser, db: PgPool) -> Result<User, AuthError> {
+    pub async fn register(payload: RegisterUser, db: &PgPool) -> Result<User, AuthError> {
         match payload {
             RegisterUser::WebUser(SignUp {
                 name,
@@ -279,7 +279,7 @@ impl User {
                     username,
                     hashed_password
                 )
-                .fetch_one(&db)
+                .fetch_one(db)
                 .await
                 .map_err(AuthError::Sqlx)?;
 
@@ -299,7 +299,7 @@ impl User {
                     "api",
                     api_key
                 )
-                .fetch_one(&db)
+                .fetch_one(db)
                 .await
                 .map_err(AuthError::Sqlx)?;
 
@@ -308,14 +308,26 @@ impl User {
         }
     }
 
-    pub async fn deactivate(&self, db: PgPool) -> Result<Option<User>, AuthError> {
+    pub async fn find_by_id(id: Uuid, db: &PgPool) -> Result<Option<User>, AuthError> {
+        let result = query_as!(User, r#"SELECT * FROM users WHERE id = $1"#, id)
+            .fetch_optional(db)
+            .await
+            .map_err(AuthError::Sqlx)?;
+
+        match result {
+            Some(user) => Ok(Some(user)),
+            None => Ok(None),
+        }
+    }
+
+    pub async fn deactivate(&self, db: &PgPool) -> Result<Option<User>, AuthError> {
         let result = query_as!(
             User,
             r#"UPDATE users SET deleted_at = $1 WHERE id = $2 RETURNING *"#,
             OffsetDateTime::now_utc(),
             self.id
         )
-        .fetch_optional(&db)
+        .fetch_optional(db)
         .await
         .map_err(AuthError::Sqlx)?;
 
