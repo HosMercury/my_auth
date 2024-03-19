@@ -20,11 +20,18 @@ pub fn router() -> Router<AppState> {
 
 pub mod get {
     use askama_axum::IntoResponse;
+    use axum::extract::State;
+    use uuid::Uuid;
+
+    use crate::{users::User, web::auth};
 
     use super::*;
 
     #[axum::debug_handler]
-    pub async fn dashboard(auth_user: AuthUser) -> DashboardTemplate {
+    pub async fn dashboard(
+        auth_user: AuthUser,
+        State(state): State<AppState>,
+    ) -> DashboardTemplate {
         DashboardTemplate {
             title: "dashboard".to_owned(),
             username: auth_user.name,

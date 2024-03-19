@@ -10,7 +10,7 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_trim::*;
 use sqlx::{query_as, FromRow, PgPool};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use time::OffsetDateTime;
 use tokio::task;
 use uuid::Uuid;
@@ -336,6 +336,29 @@ impl User {
             None => Ok(None),
         }
     }
+
+    pub async fn permissions(user_id: Uuid, db: &PgPool) -> Result<Vec<Permission>, AuthError> {
+        // if no permissions - it will return empty vec
+        let permissions = query_as!(
+            Permission,
+            r#"
+        SELECT p.* FROM permissions p
+
+        JOIN roles_permissions rp ON p.id = rp.permission_id
+        JOIN roles r ON rp.role_id = r.id
+        JOIN users_roles ur ON r.id = ur.role_id
+        JOIN users u ON ur.user_id = u.id
+
+        WHERE u.id = $1
+        "#,
+            user_id
+        )
+        .fetch_all(db)
+        .await
+        .map_err(AuthError::Sqlx)?;
+
+        Ok(permissions)
+    }
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
@@ -383,8 +406,29 @@ impl Role {
 
         Ok(role)
     }
+
+    pub async fn permissions(&self, id: Uuid, db: &PgPool) -> Result<Vec<Permission>, AuthError> {
+        let permissions = query_as!(
+            Permission,
+            r#"
+            SELECT p.* FROM permissions p
+
+            JOIN roles_permissions rp ON rp.permission_id = p.id 
+            JOIN roles r ON rp.role_id = r.id 
+
+            WHERE r.id = $1
+        "#,
+            id
+        )
+        .fetch_all(db)
+        .await
+        .map_err(AuthError::Sqlx)?;
+
+        Ok(permissions)
+    }
 }
-#[derive(Serialize, Deserialize, FromRow)]
+
+#[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct Permission {
     pub id: Uuid,
     pub name: String,
