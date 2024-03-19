@@ -337,7 +337,7 @@ impl User {
         }
     }
 
-    pub async fn roles(&self, user_id: Uuid, db: &PgPool) -> Result<Vec<Role>, AuthError> {
+    pub async fn roles(&self, db: &PgPool) -> Result<Vec<Role>, AuthError> {
         // if no permissions - it will return empty vec
         let roles = query_as!(
             Role,
@@ -349,7 +349,7 @@ impl User {
 
         WHERE u.id = $1
         "#,
-            user_id
+            self.id
         )
         .fetch_all(db)
         .await
@@ -358,11 +358,7 @@ impl User {
         Ok(roles)
     }
 
-    pub async fn permissions(
-        &self,
-        user_id: Uuid,
-        db: &PgPool,
-    ) -> Result<Vec<Permission>, AuthError> {
+    pub async fn permissions(&self, db: &PgPool) -> Result<Vec<Permission>, AuthError> {
         // if no permissions - it will return empty vec
         let permissions = query_as!(
             Permission,
@@ -376,7 +372,7 @@ impl User {
 
         WHERE u.id = $1
         "#,
-            user_id
+            self.id
         )
         .fetch_all(db)
         .await
@@ -385,8 +381,18 @@ impl User {
         Ok(permissions)
     }
 
-    pub async fn has_permission(&self, permission_id: Uuid, db: &PgPool) {
-        //
+    pub async fn has_role(&self, role_id: Uuid, db: &PgPool) -> Result<bool, AuthError> {
+        let user_roles = self.roles(db).await?;
+        Ok(user_roles.into_iter().any(|r| r.id == role_id))
+    }
+
+    pub async fn has_permission(
+        &self,
+        permission_id: Uuid,
+        db: &PgPool,
+    ) -> Result<bool, AuthError> {
+        let user_permissions = self.permissions(db).await?;
+        Ok(user_permissions.into_iter().any(|p| p.id == permission_id))
     }
 }
 
@@ -436,11 +442,7 @@ impl Role {
         Ok(role)
     }
 
-    pub async fn permissions(
-        &self,
-        role_id: Uuid,
-        db: &PgPool,
-    ) -> Result<Vec<Permission>, AuthError> {
+    pub async fn permissions(&self, db: &PgPool) -> Result<Vec<Permission>, AuthError> {
         let permissions = query_as!(
             Permission,
             r#"
@@ -451,13 +453,22 @@ impl Role {
 
             WHERE r.id = $1
         "#,
-            role_id
+            self.id
         )
         .fetch_all(db)
         .await
         .map_err(AuthError::Sqlx)?;
 
         Ok(permissions)
+    }
+
+    pub async fn has_permission(
+        &self,
+        permission_id: Uuid,
+        db: &PgPool,
+    ) -> Result<bool, AuthError> {
+        let role_permissions = self.permissions(db).await?;
+        Ok(role_permissions.into_iter().any(|p| p.id == permission_id))
     }
 }
 
@@ -507,7 +518,7 @@ impl Permission {
         Ok(permission)
     }
 
-    pub async fn roles(&self, permission_id: Uuid, db: &PgPool) -> Result<Vec<Role>, AuthError> {
+    pub async fn roles(&self, db: &PgPool) -> Result<Vec<Role>, AuthError> {
         let roles = query_as!(
             Role,
             r#"
@@ -518,13 +529,18 @@ impl Permission {
 
             WHERE p.id = $1
         "#,
-            permission_id
+            self.id
         )
         .fetch_all(db)
         .await
         .map_err(AuthError::Sqlx)?;
 
         Ok(roles)
+    }
+
+    pub async fn has_role(&self, role_id: Uuid, db: &PgPool) -> Result<bool, AuthError> {
+        let permission_roles = self.roles(db).await?;
+        Ok(permission_roles.into_iter().any(|r| r.id == role_id))
     }
 }
 
