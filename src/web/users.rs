@@ -1,5 +1,5 @@
+use crate::users::User;
 use crate::AppState;
-use crate::{users::User, web::session::AuthUser};
 use askama::Template;
 use axum::{routing::get, Router};
 use rust_i18n::locale;
@@ -32,7 +32,7 @@ pub mod get {
     use uuid::Uuid;
 
     pub async fn user_info(
-        auth_user: AuthUser,
+        auth_user: User,
         messages: Messages,
         Path(id): Path<Uuid>,
         State(state): State<AppState>,

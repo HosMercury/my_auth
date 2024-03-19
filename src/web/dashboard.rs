@@ -1,4 +1,4 @@
-use crate::web::session::AuthUser;
+use crate::users::User;
 use crate::AppState;
 use askama::Template;
 use axum::{routing::get, Router};
@@ -21,17 +21,13 @@ pub fn router() -> Router<AppState> {
 pub mod get {
     use askama_axum::IntoResponse;
     use axum::extract::State;
-    use uuid::Uuid;
 
-    use crate::{users::User, web::auth};
+    use crate::users::User;
 
     use super::*;
 
     #[axum::debug_handler]
-    pub async fn dashboard(
-        auth_user: AuthUser,
-        State(state): State<AppState>,
-    ) -> DashboardTemplate {
+    pub async fn dashboard(auth_user: User) -> DashboardTemplate {
         DashboardTemplate {
             title: "dashboard".to_owned(),
             username: auth_user.name,

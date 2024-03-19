@@ -10,7 +10,7 @@ use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_trim::*;
 use sqlx::{query_as, FromRow, PgPool};
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use time::OffsetDateTime;
 use tokio::task;
 use uuid::Uuid;
@@ -337,7 +337,32 @@ impl User {
         }
     }
 
-    pub async fn permissions(user_id: Uuid, db: &PgPool) -> Result<Vec<Permission>, AuthError> {
+    pub async fn roles(&self, user_id: Uuid, db: &PgPool) -> Result<Vec<Role>, AuthError> {
+        // if no permissions - it will return empty vec
+        let roles = query_as!(
+            Role,
+            r#"
+        SELECT r.* FROM roles r
+
+        JOIN users_roles ur ON r.id = ur.role_id
+        JOIN users u ON ur.user_id = u.id
+
+        WHERE u.id = $1
+        "#,
+            user_id
+        )
+        .fetch_all(db)
+        .await
+        .map_err(AuthError::Sqlx)?;
+
+        Ok(roles)
+    }
+
+    pub async fn permissions(
+        &self,
+        user_id: Uuid,
+        db: &PgPool,
+    ) -> Result<Vec<Permission>, AuthError> {
         // if no permissions - it will return empty vec
         let permissions = query_as!(
             Permission,
@@ -359,6 +384,10 @@ impl User {
 
         Ok(permissions)
     }
+
+    pub async fn has_permission(&self, permission_id: Uuid, db: &PgPool) {
+        //
+    }
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
@@ -368,7 +397,7 @@ pub struct Role {
 }
 
 impl Role {
-    pub async fn add(name: String, db: &PgPool) -> Result<Role, AuthError> {
+    pub async fn new(name: String, db: &PgPool) -> Result<Role, AuthError> {
         let role = query_as!(
             Role,
             "INSERT INTO roles (name) VALUES ($1) RETURNING *",
@@ -393,11 +422,11 @@ impl Role {
         }
     }
 
-    pub async fn update(id: Uuid, name: String, db: &PgPool) -> Result<Role, AuthError> {
+    pub async fn update(&self, name: String, db: &PgPool) -> Result<Role, AuthError> {
         let role = query_as!(
             Role,
             "UPDATE roles SET name = $2 WHERE id = $1 RETURNING *",
-            id,
+            self.id,
             name
         )
         .fetch_one(db)
@@ -407,7 +436,11 @@ impl Role {
         Ok(role)
     }
 
-    pub async fn permissions(&self, id: Uuid, db: &PgPool) -> Result<Vec<Permission>, AuthError> {
+    pub async fn permissions(
+        &self,
+        role_id: Uuid,
+        db: &PgPool,
+    ) -> Result<Vec<Permission>, AuthError> {
         let permissions = query_as!(
             Permission,
             r#"
@@ -418,7 +451,7 @@ impl Role {
 
             WHERE r.id = $1
         "#,
-            id
+            role_id
         )
         .fetch_all(db)
         .await
@@ -435,7 +468,7 @@ pub struct Permission {
 }
 
 impl Permission {
-    pub async fn add(name: String, db: &PgPool) -> Result<Permission, AuthError> {
+    pub async fn new(name: String, db: &PgPool) -> Result<Permission, AuthError> {
         let permission = query_as!(
             Permission,
             "INSERT INTO permissions (name) VALUES ($1) RETURNING *",
@@ -460,11 +493,11 @@ impl Permission {
         }
     }
 
-    pub async fn update(id: Uuid, name: String, db: &PgPool) -> Result<Permission, AuthError> {
+    pub async fn update(&self, name: String, db: &PgPool) -> Result<Permission, AuthError> {
         let permission = query_as!(
             Permission,
             "UPDATE permissions SET name = $2 WHERE id = $1 RETURNING *",
-            id,
+            self.id,
             name
         )
         .fetch_one(db)
@@ -472,6 +505,26 @@ impl Permission {
         .map_err(AuthError::Sqlx)?;
 
         Ok(permission)
+    }
+
+    pub async fn roles(&self, permission_id: Uuid, db: &PgPool) -> Result<Vec<Role>, AuthError> {
+        let roles = query_as!(
+            Role,
+            r#"
+            SELECT r.* FROM roles r
+
+            JOIN roles_permissions rp ON rp.role_id = r.id 
+            JOIN permissions p ON rp.permission_id = p.id 
+
+            WHERE p.id = $1
+        "#,
+            permission_id
+        )
+        .fetch_all(db)
+        .await
+        .map_err(AuthError::Sqlx)?;
+
+        Ok(roles)
     }
 }
 

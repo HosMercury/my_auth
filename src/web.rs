@@ -28,7 +28,7 @@ mod session {
     use crate::users::User;
     use axum_messages::{Level, Message, Messages, Metadata};
     use oauth2::CsrfToken;
-    use serde::{de::DeserializeOwned, Deserialize, Serialize};
+    use serde::{de::DeserializeOwned, Serialize};
     use serde_json::json;
     use std::collections::HashMap;
     use tower_sessions::Session;
@@ -39,13 +39,7 @@ mod session {
     pub const USER_SESSION_KEY: &str = "user";
     pub const CSRF_STATE_KEY: &str = "oauth.csrf-state";
 
-    #[derive(Serialize, Deserialize)]
-    pub struct AuthUser {
-        pub id: Uuid,
-        pub name: String,
-    }
-
-    impl AuthUser {
+    impl User {
         #[allow(unused)]
         pub async fn is_authenticated(&self, session: Session) -> bool {
             session
@@ -58,13 +52,7 @@ mod session {
 
     pub async fn save_session_user(user: User, session: &Session) {
         session
-            .insert(
-                USER_SESSION_KEY,
-                AuthUser {
-                    id: user.id,
-                    name: user.name,
-                },
-            )
+            .insert(USER_SESSION_KEY, user)
             .await
             .expect("Saving user in session failed");
     }
@@ -126,10 +114,12 @@ pub(crate) mod middlwares {
     use serde::{Deserialize, Serialize};
     use tower_sessions::Session;
 
-    use super::session::{AuthUser, USER_SESSION_KEY};
+    use crate::users::User;
+
+    use super::session::USER_SESSION_KEY;
 
     pub async fn auth(session: Session, request: Request, next: Next) -> impl IntoResponse {
-        match session.get::<AuthUser>(USER_SESSION_KEY).await.unwrap() {
+        match session.get::<User>(USER_SESSION_KEY).await.unwrap() {
             Some(_) => next.run(request).await,
             None => Redirect::to("/signin").into_response(),
         }
@@ -141,7 +131,7 @@ pub(crate) mod middlwares {
         request: Request,
         next: Next,
     ) -> impl IntoResponse {
-        match session.get::<AuthUser>(USER_SESSION_KEY).await.unwrap() {
+        match session.get::<User>(USER_SESSION_KEY).await.unwrap() {
             Some(_) => Redirect::to("/").into_response(),
             None => next.run(request).await,
         }
@@ -199,12 +189,14 @@ pub(crate) mod middlwares {
 }
 
 mod extractors {
-    use super::session::{AuthUser, USER_SESSION_KEY};
+    use crate::users::User;
+
+    use super::session::USER_SESSION_KEY;
     use axum::{async_trait, extract::FromRequestParts, http::request::Parts, response::Redirect};
     use tower_sessions::Session;
 
     #[async_trait]
-    impl<S> FromRequestParts<S> for AuthUser
+    impl<S> FromRequestParts<S> for User
     where
         S: Send + Sync,
     {
@@ -215,15 +207,12 @@ mod extractors {
                 .extensions
                 .get::<Session>()
                 .unwrap()
-                .get::<AuthUser>(USER_SESSION_KEY)
+                .get::<User>(USER_SESSION_KEY)
                 .await
                 .unwrap();
 
             match user {
-                Some(user) => Ok(AuthUser {
-                    id: user.id,
-                    name: user.name,
-                }),
+                Some(user) => Ok(user),
                 None => Err(Redirect::to("/signin")),
             }
         }
