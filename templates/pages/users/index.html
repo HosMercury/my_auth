@@ -1,5 +1,49 @@
 {% extends "./base.html" %} {% block content %}
 <div class="">
-  <h1 class=""></h1>
+  <table class="table-auto border-collapse border border-gray-500 p-1">
+    <thead class="p-2">
+      <th class="table-header">Id</th>
+      <th class="table-header">Name</th>
+      <th class="table-header">Usename</th>
+      <th class="table-header">Email</th>
+      <th class="table-header">Provider</th>
+      <th class="table-header">Created at</th>
+      <th class="table-header">Last login</th>
+      <th class="table-header">Updated at</th>
+      <th class="table-header">Deleted at</th>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <th>
+          <a class="underline" href="/users/{{ user.id }}">{{ user.id }}</a>
+        </th>
+        <th>{{ user.name }}</th>
+        <th>
+          {% match user.username %} {% when Some with (username) %} {{ username
+          }} {% when None %} - {% endmatch %}
+        </th>
+        <th>
+          {% match user.email %} {% when Some with (email) %} {{ email }} {%
+          when None %} - {% endmatch %}
+        </th>
+        <th>{{ user.provider }}</th>
+        <th>{{ user.created_at|time }}</th>
+        <th>
+          {% match user.last_sign %} {% when Some with (last_sign) %} {{
+          last_sign|time}} {% when None %} - {% endmatch %}
+        </th>
+        <th>
+          {% match user.updated_at %} {% when Some with (updated_at) %} {{
+          updated_at|time }} {% when None %} - {% endmatch %}
+        </th>
+        <th>
+          {% match user.deleted_at %} {% when Some with (deleted_at) %} {{
+          deleted_at|time }} {% when None %} - {% endmatch %}
+        </th>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endblock %}

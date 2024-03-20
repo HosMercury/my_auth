@@ -1,4 +1,3 @@
-use crate::users::User;
 use crate::AppState;
 use askama::Template;
 use axum::{routing::get, Router};

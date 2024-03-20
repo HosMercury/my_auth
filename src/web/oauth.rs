@@ -36,7 +36,6 @@ mod get {
     ) -> impl IntoResponse {
         let (url, csrf_token) = GoogleOauth::authorize_url(client);
         save_session_csrf(csrf_token, session).await;
-
         Redirect::to(url.as_str())
     }
 }

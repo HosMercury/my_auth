@@ -16,4 +16,8 @@
   .form-hint {
     @apply text-xs w-2/3 mx-auto  text-gray-500 italic;
   }
+
+  .table-header {
+    @apply p-1 bg-gray-500 text-white font-bold;
+  }
 }

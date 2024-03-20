@@ -17,6 +17,7 @@
   <body class="font-primary">
     {% include "partials/nav.html" %}
     <div id="content" class="min-h-screen w-full p-4">
+      <h1 class="text-3xl">{{ title|capitalize }}</h1>
       {% block content %} {% endblock %}
     </div>
     <footer

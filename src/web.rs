@@ -1,17 +1,31 @@
+use crate::AppState;
 use axum::{middleware, Router};
 use axum_messages::MessagesManagerLayer;
+use time::Duration;
 use tower_http::services::ServeDir;
-use tower_sessions::SessionManagerLayer;
-use tower_sessions_redis_store::{fred::clients::RedisPool, RedisStore};
-
-use crate::AppState;
+use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
+use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
 
 pub mod auth;
 pub mod dashboard;
 pub mod oauth;
 pub mod users;
 
-pub fn router(session_layer: SessionManagerLayer<RedisStore<RedisPool>>) -> Router<AppState> {
+pub fn router() -> Router<AppState> {
+    /////////////////////////////////  REDIS  ////////////////////////////////////////
+    // Session layer.
+    //
+    // This uses `tower-sessions` to establish a layer that will provide the session
+    // as a request extension.
+    let pool = RedisPool::new(RedisConfig::default(), None, None, None, 6).unwrap();
+    pool.connect();
+
+    let session_store = RedisStore::new(pool);
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_secure(false)
+        .with_same_site(SameSite::Lax) // Ensure we send the cookie from the OAuth redirect.
+        .with_expiry(Expiry::OnInactivity(Duration::days(1)));
+
     Router::new()
         .merge(dashboard::router())
         .merge(users::router())
@@ -54,7 +68,6 @@ mod session {
     use serde_json::json;
     use std::collections::HashMap;
     use tower_sessions::Session;
-    use uuid::Uuid;
     use validator::ValidationErrors;
 
     pub const PREVIOUS_DATA_SESSION_KEY: &str = "previous_data";
@@ -238,5 +251,16 @@ mod extractors {
                 None => Err(Redirect::to("/signin")),
             }
         }
+    }
+}
+
+pub mod filters {
+    use askama::Result;
+    use time::{macros::format_description, OffsetDateTime};
+
+    pub fn time(t: &OffsetDateTime) -> Result<String> {
+        let format = format_description!("[day]-[month]-[year] [hour repr:12]:[minute] [period]");
+
+        Ok(t.format(&format).unwrap())
     }
 }

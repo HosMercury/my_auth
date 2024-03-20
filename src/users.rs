@@ -308,7 +308,16 @@ impl User {
         }
     }
 
-    pub async fn find_by_id(id: Uuid, db: &PgPool) -> Result<Option<User>, AuthError> {
+    pub async fn all(db: &PgPool) -> Result<Vec<User>, AuthError> {
+        let users = query_as!(User, "SELECT * FROM users")
+            .fetch_all(db)
+            .await
+            .map_err(AuthError::Sqlx)?;
+
+        Ok(users)
+    }
+
+    pub async fn find(id: Uuid, db: &PgPool) -> Result<Option<User>, AuthError> {
         let result = query_as!(User, r#"SELECT * FROM users WHERE id = $1"#, id)
             .fetch_optional(db)
             .await
@@ -416,7 +425,16 @@ impl Role {
         Ok(role)
     }
 
-    pub async fn find_by_id(id: Uuid, db: &PgPool) -> Result<Option<Role>, AuthError> {
+    pub async fn all(db: &PgPool) -> Result<Vec<Role>, AuthError> {
+        let roles = query_as!(Role, "SELECT * FROM roles")
+            .fetch_all(db)
+            .await
+            .map_err(AuthError::Sqlx)?;
+
+        Ok(roles)
+    }
+
+    pub async fn find(id: Uuid, db: &PgPool) -> Result<Option<Role>, AuthError> {
         let result = query_as!(Role, "SELECT * FROM roles WHERE id = $1", id)
             .fetch_optional(db)
             .await
@@ -492,7 +510,7 @@ impl Permission {
         Ok(permission)
     }
 
-    pub async fn find_by_id(id: Uuid, db: &PgPool) -> Result<Option<Permission>, AuthError> {
+    pub async fn find(id: Uuid, db: &PgPool) -> Result<Option<Permission>, AuthError> {
         let result = query_as!(Permission, "SELECT * FROM permissions WHERE id = $1", id)
             .fetch_optional(db)
             .await
@@ -502,6 +520,15 @@ impl Permission {
             Some(permission) => Ok(Some(permission)),
             None => Ok(None),
         }
+    }
+
+    pub async fn all(db: &PgPool) -> Result<Vec<Permission>, AuthError> {
+        let permissions = query_as!(Permission, "SELECT * FROM permissions")
+            .fetch_all(db)
+            .await
+            .map_err(AuthError::Sqlx)?;
+
+        Ok(permissions)
     }
 
     pub async fn update(&self, name: String, db: &PgPool) -> Result<Permission, AuthError> {

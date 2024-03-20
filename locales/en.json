@@ -15,6 +15,7 @@
   "dashboard": "Dashboard",
   "rights_reserved": " All rights reserved",
   "send": "Send",
+  "users": "users",
   "errors": {
     "required": "The %{field} field is required .",
     "min_length": "The %{field} field must be at least %{min} characters long",

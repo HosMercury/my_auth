@@ -15,6 +15,7 @@
   "dashboard": "الرئيسية",
   "rights_reserved": "جميع الحقوق محفوظة",
   "send": "إرسال",
+  "users": "المستخدمين",
   "errors": {
     "required": "خانة %{field} مطلوبة",
     "min_length": "خانة %{field} لا يجب أن تقل عن %{min} حروف",

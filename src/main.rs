@@ -6,9 +6,6 @@ mod web;
 use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::env;
-use time::Duration;
-use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
-use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 #[macro_use]
@@ -32,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     dotenvy::dotenv()?;
 
-    //////////////////////////////// OAuth ///////////////////////////////////////////
+    //////////////////////////////// OAuth ///////////////////////////////////
     let client_id = env::var("CLIENT_ID")
         .map(ClientId::new)
         .expect("CLIENT_ID should be provided.");
@@ -49,7 +46,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             RedirectUrl::new("http://localhost:3000/oauth/callback".to_string())
                 .expect("Invalid redirect URL"),
         );
-
     /////////////////////////////////  DB  ///////////////////////////////////////////
     let db_url: String = env::var("DATABASE_URL").unwrap();
 
@@ -60,28 +56,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("error connection to db");
 
     sqlx::migrate!().run(&db).await?;
-
-    /////////////////////////////////  REDIS  ////////////////////////////////////////
-    // Session layer.
-    //
-    // This uses `tower-sessions` to establish a layer that will provide the session
-    // as a request extension.
-    let pool = RedisPool::new(RedisConfig::default(), None, None, None, 6).unwrap();
-    pool.connect();
-
-    let session_store = RedisStore::new(pool);
-    let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(false)
-        .with_same_site(SameSite::Lax) // Ensure we send the cookie from the OAuth redirect.
-        .with_expiry(Expiry::OnInactivity(Duration::days(1)));
-
     /////////////////////////////////  State  ////////////////////////////////////////
     let app_state = AppState {
         db: db.clone(),
         client,
     };
 
-    let app = web::router(session_layer)
+    let app = web::router()
         .merge(api::router(&app_state))
         .with_state(app_state);
 
