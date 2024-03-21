@@ -18,6 +18,10 @@
   }
 
   .table-header {
-    @apply p-1 bg-gray-500 text-white font-bold;
+    @apply p-2 bg-gray-500 text-white font-bold text-center border border-collapse  border-gray-500;
+  }
+
+  .table-cell {
+    @apply p-1 text-center border border-collapse border-gray-500;
   }
 }

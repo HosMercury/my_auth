@@ -19,7 +19,7 @@ use validator::Validate;
 
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct User {
-    pub id: Uuid,
+    pub uid: Uuid,
     pub name: String,
     pub username: Option<String>,
     pub email: Option<String>,
@@ -27,6 +27,7 @@ pub struct User {
 
     #[serde(skip_serializing)]
     pub password: Option<String>,
+
     #[serde(skip_serializing)]
     pub access_token: Option<String>,
 
@@ -50,7 +51,7 @@ pub struct User {
 impl Debug for User {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("User")
-            .field("id", &self.id)
+            .field("uid", &self.uid)
             .field("name", &self.name)
             .field("username", &self.username)
             .field("email", &self.email)
@@ -317,8 +318,8 @@ impl User {
         Ok(users)
     }
 
-    pub async fn find(id: Uuid, db: &PgPool) -> Result<Option<User>, AuthError> {
-        let result = query_as!(User, r#"SELECT * FROM users WHERE id = $1"#, id)
+    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Option<User>, AuthError> {
+        let result = query_as!(User, r#"SELECT * FROM users WHERE uid = $1"#, uid)
             .fetch_optional(db)
             .await
             .map_err(AuthError::Sqlx)?;
@@ -332,9 +333,9 @@ impl User {
     pub async fn deactivate(&self, db: &PgPool) -> Result<Option<User>, AuthError> {
         let result = query_as!(
             User,
-            r#"UPDATE users SET deleted_at = $1 WHERE id = $2 RETURNING *"#,
+            r#"UPDATE users SET deleted_at = $1 WHERE uid = $2 RETURNING *"#,
             OffsetDateTime::now_utc(),
-            self.id
+            self.uid
         )
         .fetch_optional(db)
         .await
@@ -353,12 +354,12 @@ impl User {
             r#"
         SELECT r.* FROM roles r
 
-        JOIN users_roles ur ON r.id = ur.role_id
-        JOIN users u ON ur.user_id = u.id
+        JOIN users_roles ur ON r.uid = ur.role_uid
+        JOIN users u ON ur.user_uid = u.uid
 
-        WHERE u.id = $1
+        WHERE u.uid = $1
         "#,
-            self.id
+            self.uid
         )
         .fetch_all(db)
         .await
@@ -374,14 +375,14 @@ impl User {
             r#"
         SELECT p.* FROM permissions p
 
-        JOIN roles_permissions rp ON p.id = rp.permission_id
-        JOIN roles r ON rp.role_id = r.id
-        JOIN users_roles ur ON r.id = ur.role_id
-        JOIN users u ON ur.user_id = u.id
+        JOIN roles_permissions rp ON p.uid = rp.permission_uid
+        JOIN roles r ON rp.role_uid = r.uid
+        JOIN users_roles ur ON r.uid = ur.role_uid
+        JOIN users u ON ur.user_uid = u.uid
 
-        WHERE u.id = $1
+        WHERE u.uid = $1
         "#,
-            self.id
+            self.uid
         )
         .fetch_all(db)
         .await
@@ -390,24 +391,26 @@ impl User {
         Ok(permissions)
     }
 
-    pub async fn has_role(&self, role_id: Uuid, db: &PgPool) -> Result<bool, AuthError> {
+    pub async fn has_role(&self, role_uid: Uuid, db: &PgPool) -> Result<bool, AuthError> {
         let user_roles = self.roles(db).await?;
-        Ok(user_roles.into_iter().any(|r| r.id == role_id))
+        Ok(user_roles.into_iter().any(|r| r.uid == role_uid))
     }
 
     pub async fn has_permission(
         &self,
-        permission_id: Uuid,
+        permission_uid: Uuid,
         db: &PgPool,
     ) -> Result<bool, AuthError> {
         let user_permissions = self.permissions(db).await?;
-        Ok(user_permissions.into_iter().any(|p| p.id == permission_id))
+        Ok(user_permissions
+            .into_iter()
+            .any(|p| p.uid == permission_uid))
     }
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct Role {
-    pub id: Uuid,
+    pub uid: Uuid,
     pub name: String,
 }
 
@@ -434,8 +437,8 @@ impl Role {
         Ok(roles)
     }
 
-    pub async fn find(id: Uuid, db: &PgPool) -> Result<Option<Role>, AuthError> {
-        let result = query_as!(Role, "SELECT * FROM roles WHERE id = $1", id)
+    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Option<Role>, AuthError> {
+        let result = query_as!(Role, "SELECT * FROM roles WHERE uid = $1", uid)
             .fetch_optional(db)
             .await
             .map_err(AuthError::Sqlx)?;
@@ -449,8 +452,8 @@ impl Role {
     pub async fn update(&self, name: String, db: &PgPool) -> Result<Role, AuthError> {
         let role = query_as!(
             Role,
-            "UPDATE roles SET name = $2 WHERE id = $1 RETURNING *",
-            self.id,
+            "UPDATE roles SET name = $2 WHERE uid = $1 RETURNING *",
+            self.uid,
             name
         )
         .fetch_one(db)
@@ -466,12 +469,12 @@ impl Role {
             r#"
             SELECT p.* FROM permissions p
 
-            JOIN roles_permissions rp ON rp.permission_id = p.id 
-            JOIN roles r ON rp.role_id = r.id 
+            JOIN roles_permissions rp ON rp.permission_uid = p.uid 
+            JOIN roles r ON rp.role_uid = r.uid 
 
-            WHERE r.id = $1
+            WHERE r.uid = $1
         "#,
-            self.id
+            self.uid
         )
         .fetch_all(db)
         .await
@@ -482,17 +485,19 @@ impl Role {
 
     pub async fn has_permission(
         &self,
-        permission_id: Uuid,
+        permission_uid: Uuid,
         db: &PgPool,
     ) -> Result<bool, AuthError> {
         let role_permissions = self.permissions(db).await?;
-        Ok(role_permissions.into_iter().any(|p| p.id == permission_id))
+        Ok(role_permissions
+            .into_iter()
+            .any(|p| p.uid == permission_uid))
     }
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct Permission {
-    pub id: Uuid,
+    pub uid: Uuid,
     pub name: String,
 }
 
@@ -510,8 +515,8 @@ impl Permission {
         Ok(permission)
     }
 
-    pub async fn find(id: Uuid, db: &PgPool) -> Result<Option<Permission>, AuthError> {
-        let result = query_as!(Permission, "SELECT * FROM permissions WHERE id = $1", id)
+    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Option<Permission>, AuthError> {
+        let result = query_as!(Permission, "SELECT * FROM permissions WHERE uid = $1", uid)
             .fetch_optional(db)
             .await
             .map_err(AuthError::Sqlx)?;
@@ -534,8 +539,8 @@ impl Permission {
     pub async fn update(&self, name: String, db: &PgPool) -> Result<Permission, AuthError> {
         let permission = query_as!(
             Permission,
-            "UPDATE permissions SET name = $2 WHERE id = $1 RETURNING *",
-            self.id,
+            "UPDATE permissions SET name = $2 WHERE uid = $1 RETURNING *",
+            self.uid,
             name
         )
         .fetch_one(db)
@@ -551,12 +556,12 @@ impl Permission {
             r#"
             SELECT r.* FROM roles r
 
-            JOIN roles_permissions rp ON rp.role_id = r.id 
-            JOIN permissions p ON rp.permission_id = p.id 
+            JOIN roles_permissions rp ON rp.role_uid = r.uid 
+            JOIN permissions p ON rp.permission_uid = p.uid 
 
-            WHERE p.id = $1
+            WHERE p.uid = $1
         "#,
-            self.id
+            self.uid
         )
         .fetch_all(db)
         .await
@@ -565,9 +570,9 @@ impl Permission {
         Ok(roles)
     }
 
-    pub async fn has_role(&self, role_id: Uuid, db: &PgPool) -> Result<bool, AuthError> {
+    pub async fn has_role(&self, role_uid: Uuid, db: &PgPool) -> Result<bool, AuthError> {
         let permission_roles = self.roles(db).await?;
-        Ok(permission_roles.into_iter().any(|r| r.id == role_id))
+        Ok(permission_roles.into_iter().any(|r| r.uid == role_uid))
     }
 }
 

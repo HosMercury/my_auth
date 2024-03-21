@@ -1,5 +1,4 @@
 use axum::{middleware, Router};
-
 use crate::AppState;
 
 pub mod client_auth;

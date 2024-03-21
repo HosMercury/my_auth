@@ -1,5 +1,59 @@
 {% extends "./base.html" %} {% block content %}
-<div class="">
-  <h1 class="">{{ user.name }}</h1>
+<div class="flex justify-center items-center my-4">
+  <table>
+    <tbody>
+      <tr>
+        <td class="table-header">{{ t!("id")|uppercase }}</td>
+        <td class="table-cell">{{ user.uid }}</td>
+      </tr>
+      <tr>
+        <td class="table-header">{{ t!("name")|capitalize }}</td>
+        <td class="table-cell">{{ user.name }}</td>
+      </tr>
+      <tr>
+        <td class="table-header">{{ t!("username")|capitalize }}</td>
+        <td class="table-cell">
+          {% match user.username %} {% when Some with (username) %} {{ username
+          }} {% when None %} - {% endmatch %}
+        </td>
+      </tr>
+      <tr>
+        <td class="table-header">{{ t!("email")|capitalize }}</td>
+        <td class="table-cell">
+          {% match user.email %} {% when Some with (email) %} {{ email }} {%
+          when None %} - {% endmatch %}
+        </td>
+      </tr>
+      <tr>
+        <td class="table-header">{{ t!("provider")|capitalize }}</td>
+        <td class="table-cell">{{ user.provider }}</td>
+      </tr>
+      <tr>
+        <td class="table-header">{{ t!("last_sign")|capitalize }}</td>
+        <td class="table-cell">
+          {% match user.last_sign %} {% when Some with (last_sign) %} {{
+          last_sign|time }} {% when None %} - {% endmatch %}
+        </td>
+      </tr>
+      <tr>
+        <td class="table-header">{{ t!("created_at")|capitalize }}</td>
+        <td class="table-cell">{{ user.created_at }}</td>
+      </tr>
+      <tr>
+        <td class="table-header">{{ t!("updated_at") }}</td>
+        <td class="table-cell">
+          {% match user.updated_at %} {% when Some with (updated_at) %} {{
+          updated_at|time }} {% when None %} - {% endmatch %}
+        </td>
+      </tr>
+      <tr>
+        <td class="table-header">{{ t!("deleted_at")|capitalize }}</td>
+        <td class="table-cell">
+          {% match user.deleted_at %} {% when Some with (deleted_at) %} {{
+          deleted_at|time }} {% when None %} - {% endmatch %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 {% endblock %}

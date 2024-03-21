@@ -1,8 +1,8 @@
 {% extends "./base.html" %} {% block content %}
-<div class="">
+<div class="w-full flex justify-center items-center my-4">
   <table class="table-auto border-collapse border border-gray-500 p-1">
     <thead class="p-2">
-      <th class="table-header">Id</th>
+      <th class="table-header">UUID</th>
       <th class="table-header">Name</th>
       <th class="table-header">Usename</th>
       <th class="table-header">Email</th>
@@ -15,32 +15,33 @@
     <tbody>
       {% for user in users %}
       <tr>
-        <th>
-          <a class="underline" href="/users/{{ user.id }}">{{ user.id }}</a>
-        </th>
-        <th>{{ user.name }}</th>
-        <th>
+        <td class="table-cell">
+          <a class="underline" href="/users/{{ user.uid }}">{{ user.uid }}</a>
+        </td>
+
+        <td class="table-cell">{{ user.name }}</td>
+        <td class="table-cell">
           {% match user.username %} {% when Some with (username) %} {{ username
           }} {% when None %} - {% endmatch %}
-        </th>
-        <th>
+        </td>
+        <td class="table-cell">
           {% match user.email %} {% when Some with (email) %} {{ email }} {%
           when None %} - {% endmatch %}
-        </th>
-        <th>{{ user.provider }}</th>
-        <th>{{ user.created_at|time }}</th>
-        <th>
+        </td>
+        <td class="table-cell">{{ user.provider }}</td>
+        <td class="table-cell">{{ user.created_at|time }}</td>
+        <td class="table-cell">
           {% match user.last_sign %} {% when Some with (last_sign) %} {{
           last_sign|time}} {% when None %} - {% endmatch %}
-        </th>
-        <th>
+        </td>
+        <td class="table-cell">
           {% match user.updated_at %} {% when Some with (updated_at) %} {{
           updated_at|time }} {% when None %} - {% endmatch %}
-        </th>
-        <th>
+        </td>
+        <td class="table-cell">
           {% match user.deleted_at %} {% when Some with (deleted_at) %} {{
           deleted_at|time }} {% when None %} - {% endmatch %}
-        </th>
+        </td>
       </tr>
       {% endfor %}
     </tbody>

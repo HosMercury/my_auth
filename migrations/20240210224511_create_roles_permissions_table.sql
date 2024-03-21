@@ -1,23 +1,23 @@
 CREATE TABLE IF NOT EXISTS roles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS permissions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS users_roles (
-    user_id UUID REFERENCES users(id),
-    role_id UUID REFERENCES roles(id),
-    PRIMARY KEY (user_id, role_id)
+    user_uid UUID REFERENCES users(uid),
+    role_uid UUID REFERENCES roles(uid),
+    PRIMARY KEY (user_uid, role_uid)
 );
 
 CREATE TABLE IF NOT EXISTS roles_permissions (
-    role_id UUID REFERENCES roles(id),
-    permission_id UUID REFERENCES permissions(id),
-    primary key (role_id, permission_id)
+    role_uid UUID REFERENCES roles(uid),
+    permission_uid UUID REFERENCES permissions(uid),
+    primary key (role_uid, permission_uid)
 );
 
 ----------------- Seeding --------------
@@ -27,23 +27,23 @@ VALUES ('users'),('admins');
 insert into permissions (name)
 VALUES ('dashboard.read'), ('restricted.read');
 
-INSERT INTO roles_permissions (role_id, permission_id)
+INSERT INTO roles_permissions (role_uid, permission_uid)
 VALUES (
-    (SELECT id FROM roles WHERE name = 'users'),
-    (SELECT id FROM permissions WHERE name = 'dashboard.read')
+    (SELECT uid FROM roles WHERE name = 'users'),
+    (SELECT uid FROM permissions WHERE name = 'dashboard.read')
 ), (
-    (SELECT id FROM roles WHERE name = 'admins'),
-    (SELECT id FROM permissions WHERE name = 'dashboard.read')
+    (SELECT uid FROM roles WHERE name = 'admins'),
+    (SELECT uid FROM permissions WHERE name = 'dashboard.read')
 );
 
-INSERT INTO users_roles (user_id, role_id)
+INSERT INTO users_roles (user_uid, role_uid)
 VALUES (
-    (SELECT id FROM users WHERE username = 'ferris'),
-    (select id FROM roles WHERE name = 'users')
+    (SELECT uid FROM users WHERE username = 'ferris'),
+    (select uid FROM roles WHERE name = 'users')
 ), (
-    (SELECT id FROM users WHERE username = 'admin'),
-    (SELECT id FROM roles WHERE name = 'users')
+    (SELECT uid FROM users WHERE username = 'admin'),
+    (SELECT uid FROM roles WHERE name = 'users')
 ), (
-    (SELECT id FROM users WHERE username = 'admin'),
-    (SELECT id FROM roles WHERE name = 'admins')
+    (SELECT uid FROM users WHERE username = 'admin'),
+    (SELECT uid FROM roles WHERE name = 'admins')
 );

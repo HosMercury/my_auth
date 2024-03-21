@@ -28,7 +28,7 @@ pub fn router() -> Router<AppState> {
         "/users",
         Router::new()
             .route("/", get(self::get::index))
-            .route("/:id", get(self::get::show)),
+            .route("/:uid", get(self::get::show)),
     )
 }
 
@@ -67,15 +67,15 @@ pub mod get {
     pub async fn show(
         auth_user: User,
         messages: Messages,
-        Path(id): Path<Uuid>,
+        Path(uid): Path<Uuid>,
         State(state): State<AppState>,
     ) -> impl IntoResponse {
-        let result = User::find(id, &state.db).await;
+        let result = User::find(uid, &state.db).await;
 
         match result {
             Ok(record) => match record {
                 Some(user) => ShowTemplate {
-                    title: format!("Show user {}", user.name),
+                    title: t!("show_user", name = user.name).to_string(),
                     username: auth_user.name,
                     locale: locale().to_string(),
                     user,

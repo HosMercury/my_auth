@@ -4,9 +4,9 @@ services:
     image: postgres:14.1-alpine
     restart: always
     environment:
-      - POSTGRES_USER=rust_auth_example
-      - POSTGRES_PASSWORD=rust_auth_example
-      - POSTGRES_DATABASE=rust_auth_example
+      - POSTGRES_USER=my_auth
+      - POSTGRES_PASSWORD=my_auth
+      - POSTGRES_DATABASE=my_auth
     ports:
       - '5432:5432'
     volumes:

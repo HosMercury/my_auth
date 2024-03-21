@@ -19,7 +19,6 @@ pub fn router() -> Router<AppState> {
 
 pub mod get {
     use askama_axum::IntoResponse;
-    use axum::extract::State;
 
     use crate::users::User;
 
