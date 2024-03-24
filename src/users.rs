@@ -295,11 +295,9 @@ impl User {
     }
 
     pub async fn with_roles(&self, db: &PgPool) -> Result<UserWithRoles> {
-        let roles = self.roles(db).await?;
-
         Ok(UserWithRoles {
             user: self.clone(),
-            roles,
+            roles: self.roles(db).await?,
         })
     }
 
