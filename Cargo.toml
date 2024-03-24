@@ -13,14 +13,13 @@ oauth2 = { version = "4.4.2", features = ["reqwest"] }
 password-auth = "1.0.0"
 regex = "1.10.3"
 serde = "1.0.196"
-sqlx = { version = "0.7.3", features = [
+sqlx = { version = "0.7.4", features = [
   "postgres",
   "macros",
   "runtime-async-std",
   "uuid",
   "time",
 ] }
-thiserror = "1.0.56"
 time = { version = "0.3.31", features = ["std"] }
 tokio = { version = "1.35.1", features = ["full"] }
 tower-sessions = "0.11.0"
@@ -39,3 +38,4 @@ axum-messages = "0.5.0"
 base64 = "0.22.0"
 rand = "0.8.5"
 rand_core = "0.6.4"
+anyhow = "1.0.81"

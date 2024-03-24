@@ -21,6 +21,10 @@ cargo watch -x run
 - SQLX migrate ( this crate uses _postgres_ ) , the migrations also auto-generated with compile or you could use this command . please create a `.env` file that contains `DATABASE_URL` and `CLIENT_ID` and `CLIENT_SECRET` where you could get these credentials from google OAuth console .
 
 ```bash
+echo DATABASE_URL=postgres://db_user:db_password@127.0.0.1:5432/db_name > .env
+```
+
+```bash
 sqlx migrate run --database-url postgres://db_user:db_password@127.0.0.1:5432/db_name
 
 ```

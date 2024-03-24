@@ -41,6 +41,7 @@ pub mod get {
         response::Redirect,
     };
     use axum_messages::Messages;
+    use serde_json::json;
     use uuid::Uuid;
 
     pub async fn index(
@@ -70,22 +71,19 @@ pub mod get {
         Path(uid): Path<Uuid>,
         State(state): State<AppState>,
     ) -> impl IntoResponse {
-        let result = User::find(uid, &state.db).await;
+        let res = auth_user.with_roles(&state.db).await.unwrap();
 
+        println!("{}", json!(res));
+
+        let result = User::find(uid, &state.db).await;
         match result {
-            Ok(record) => match record {
-                Some(user) => ShowTemplate {
-                    title: t!("show_user", name = user.name).to_string(),
-                    username: auth_user.name,
-                    locale: locale().to_string(),
-                    user,
-                }
-                .into_response(),
-                None => {
-                    messages.error(t!("errors.user_not_found"));
-                    Redirect::to("/users").into_response()
-                }
-            },
+            Ok(user) => ShowTemplate {
+                title: t!("show_user", name = user.name).to_string(),
+                username: auth_user.name,
+                locale: locale().to_string(),
+                user,
+            }
+            .into_response(),
             Err(_) => {
                 messages.error(t!("errors.errors.system_error"));
                 Redirect::to("/users").into_response()

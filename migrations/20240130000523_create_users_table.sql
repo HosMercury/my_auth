@@ -1,17 +1,19 @@
 CREATE TABLE IF NOT EXISTS users (
         uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        name TEXT NOT NULL,
-        username TEXT UNIQUE,
-        email TEXT UNIQUE,
-        password TEXT,
-        access_token TEXT,
-        refresh_token TEXT,
-        provider TEXT NOT NULL DEFAULT 'web',
+        name VARCHAR(50) NOT NULL,
+        username VARCHAR(50) UNIQUE,
+        email VARCHAR(50) UNIQUE,
+        password  VARCHAR(250),
+        access_token VARCHAR(250),
+        refresh_token VARCHAR(250),
+        provider VARCHAR(50) NOT NULL DEFAULT 'web',
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMPTZ,
         deleted_at TIMESTAMPTZ,
         last_sign TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+
+CREATE INDEX idx_users_uid ON users (uid);
 
 ----------------- Seeding --------------
 INSERT INTO

@@ -1,10 +1,8 @@
 use crate::{validations, web::keygen::os_keygen};
+use anyhow::Result;
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
-use oauth2::{
-    basic::{BasicClient, BasicRequestTokenError},
-    reqwest::{async_http_client, AsyncHttpClientError},
-    AuthorizationCode, CsrfToken, Scope, TokenResponse,
-};
+use oauth2::TokenResponse;
+use oauth2::{basic::BasicClient, reqwest::async_http_client, AuthorizationCode, CsrfToken, Scope};
 use password_auth::{generate_hash, verify_password};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -17,7 +15,7 @@ use uuid::Uuid;
 use validations::{validate_password, REGEX_NAME, REGEX_USERNAME};
 use validator::Validate;
 
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, Clone, FromRow)]
 pub struct User {
     pub uid: Uuid,
     pub name: String,
@@ -144,19 +142,10 @@ pub struct ApiUser {
     pub email: String,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum AuthError {
-    #[error(transparent)]
-    Sqlx(sqlx::Error),
-
-    #[error(transparent)]
-    Reqwest(reqwest::Error),
-
-    #[error(transparent)]
-    OAuth2(BasicRequestTokenError<AsyncHttpClientError>),
-
-    #[error(transparent)]
-    TaskJoin(#[from] task::JoinError),
+#[derive(Serialize, Deserialize)]
+pub struct UserWithRoles {
+    pub user: User,
+    pub roles: Vec<Role>,
 }
 
 impl User {
@@ -164,7 +153,7 @@ impl User {
         creds: Credentials,
         db: &PgPool,
         client: BasicClient,
-    ) -> Result<Option<User>, AuthError> {
+    ) -> Result<Option<User>> {
         match creds {
             Credentials::Password(PasswordCreds { username, password }) => {
                 let user = query_as!(
@@ -175,8 +164,7 @@ impl User {
                     username,
                 )
                 .fetch_optional(db)
-                .await
-                .map_err(AuthError::Sqlx)?;
+                .await?;
 
                 // Verifying the password is blocking and potentially slow, so we'll do so via
                 let user_result = task::spawn_blocking(|| {
@@ -189,8 +177,7 @@ impl User {
                         verify_password(password, db_password).is_ok()
                     }))
                 })
-                .await
-                .map_err(AuthError::TaskJoin)?;
+                .await?;
 
                 match user_result {
                     Ok(user) => match user {
@@ -215,8 +202,7 @@ impl User {
                 let token_response = client
                     .exchange_code(AuthorizationCode::new(code))
                     .request_async(async_http_client)
-                    .await
-                    .map_err(AuthError::OAuth2)?;
+                    .await?;
 
                 // Use access token to request user info.
                 let user_info = reqwest::Client::new()
@@ -227,37 +213,33 @@ impl User {
                         format!("Bearer {}", token_response.access_token().secret()),
                     )
                     .send()
-                    .await
-                    .map_err(AuthError::Reqwest)?
+                    .await?
                     .json::<UserInfo>()
-                    .await
-                    .map_err(AuthError::Reqwest)?;
+                    .await?;
 
-                // Persist user in our database so we can use `get_user`.
-                let user = query_as!(
-                    User,
-                    r#"
+                Ok(Some(
+                    query_as!(
+                        User,
+                        r#"
                         INSERT INTO users (name, email, access_token, provider)
                         VALUES ($1, $2, $3, $4)
                         ON CONFLICT(email) DO UPDATE
                         SET access_token = excluded.access_token
                         RETURNING *
                     "#,
-                    user_info.given_name,
-                    user_info.email,
-                    token_response.access_token().secret(),
-                    "google"
-                )
-                .fetch_one(db)
-                .await
-                .map_err(AuthError::Sqlx)?;
-
-                Ok(Some(user))
+                        user_info.given_name,
+                        user_info.email,
+                        token_response.access_token().secret(),
+                        "google"
+                    )
+                    .fetch_one(db)
+                    .await?,
+                ))
             }
         }
     }
 
-    pub async fn register(payload: RegisterUser, db: &PgPool) -> Result<User, AuthError> {
+    pub async fn register(payload: RegisterUser, db: &PgPool) -> Result<User> {
         match payload {
             RegisterUser::WebUser(SignUp {
                 name,
@@ -269,7 +251,7 @@ impl User {
                     .await
                     .expect("Hashing password failed");
 
-                let user = query_as!(
+                Ok(query_as!(
                     Self,
                     r#"
                     INSERT INTO users (name, username, password)
@@ -281,75 +263,60 @@ impl User {
                     hashed_password
                 )
                 .fetch_one(db)
-                .await
-                .map_err(AuthError::Sqlx)?;
-
-                Ok(user)
+                .await?)
             }
-            RegisterUser::ApiUser(ApiUser { name, email }) => {
-                let api_key = os_keygen();
-                let user = query_as!(
-                    Self,
-                    r#"
+            RegisterUser::ApiUser(ApiUser { name, email }) => Ok(query_as!(
+                Self,
+                r#"
                     INSERT INTO users (name, email, provider, access_token)
                     VALUES ($1, $2, $3, $4)
                     RETURNING *
                 "#,
-                    name,
-                    email,
-                    "api",
-                    api_key
-                )
+                name,
+                email,
+                "api",
+                os_keygen()
+            )
+            .fetch_one(db)
+            .await?),
+        }
+    }
+
+    pub async fn all(db: &PgPool) -> Result<Vec<User>> {
+        Ok(query_as!(User, "SELECT * FROM users").fetch_all(db).await?)
+    }
+
+    pub async fn find(uid: Uuid, db: &PgPool) -> Result<User> {
+        Ok(
+            query_as!(User, r#"SELECT * FROM users WHERE uid = $1"#, uid)
                 .fetch_one(db)
-                .await
-                .map_err(AuthError::Sqlx)?;
-
-                Ok(user)
-            }
-        }
+                .await?,
+        )
     }
 
-    pub async fn all(db: &PgPool) -> Result<Vec<User>, AuthError> {
-        let users = query_as!(User, "SELECT * FROM users")
-            .fetch_all(db)
-            .await
-            .map_err(AuthError::Sqlx)?;
+    pub async fn with_roles(&self, db: &PgPool) -> Result<UserWithRoles> {
+        let roles = self.roles(db).await?;
 
-        Ok(users)
+        Ok(UserWithRoles {
+            user: self.clone(),
+            roles,
+        })
     }
 
-    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Option<User>, AuthError> {
-        let result = query_as!(User, r#"SELECT * FROM users WHERE uid = $1"#, uid)
-            .fetch_optional(db)
-            .await
-            .map_err(AuthError::Sqlx)?;
-
-        match result {
-            Some(user) => Ok(Some(user)),
-            None => Ok(None),
-        }
-    }
-
-    pub async fn deactivate(&self, db: &PgPool) -> Result<Option<User>, AuthError> {
-        let result = query_as!(
+    pub async fn deactivate(&self, db: &PgPool) -> Result<User> {
+        Ok(query_as!(
             User,
             r#"UPDATE users SET deleted_at = $1 WHERE uid = $2 RETURNING *"#,
             OffsetDateTime::now_utc(),
             self.uid
         )
-        .fetch_optional(db)
-        .await
-        .map_err(AuthError::Sqlx)?;
-
-        match result {
-            Some(user) => Ok(Some(user)),
-            None => Ok(None),
-        }
+        .fetch_one(db)
+        .await?)
     }
 
-    pub async fn roles(&self, db: &PgPool) -> Result<Vec<Role>, AuthError> {
+    pub async fn roles(&self, db: &PgPool) -> Result<Vec<Role>> {
         // if no permissions - it will return empty vec
-        let roles = query_as!(
+        Ok(query_as!(
             Role,
             r#"
         SELECT r.* FROM roles r
@@ -362,15 +329,12 @@ impl User {
             self.uid
         )
         .fetch_all(db)
-        .await
-        .map_err(AuthError::Sqlx)?;
-
-        Ok(roles)
+        .await?)
     }
 
-    pub async fn permissions(&self, db: &PgPool) -> Result<Vec<Permission>, AuthError> {
+    pub async fn permissions(&self, db: &PgPool) -> Result<Vec<Permission>> {
         // if no permissions - it will return empty vec
-        let permissions = query_as!(
+        Ok(query_as!(
             Permission,
             r#"
         SELECT p.* FROM permissions p
@@ -385,86 +349,68 @@ impl User {
             self.uid
         )
         .fetch_all(db)
-        .await
-        .map_err(AuthError::Sqlx)?;
-
-        Ok(permissions)
+        .await?)
     }
 
-    pub async fn has_role(&self, role_uid: Uuid, db: &PgPool) -> Result<bool, AuthError> {
-        let user_roles = self.roles(db).await?;
-        Ok(user_roles.into_iter().any(|r| r.uid == role_uid))
+    pub async fn has_role(&self, role_uid: Uuid, db: &PgPool) -> Result<bool> {
+        Ok(self.roles(db).await?.into_iter().any(|r| r.uid == role_uid))
     }
 
-    pub async fn has_permission(
-        &self,
-        permission_uid: Uuid,
-        db: &PgPool,
-    ) -> Result<bool, AuthError> {
-        let user_permissions = self.permissions(db).await?;
-        Ok(user_permissions
+    pub async fn has_permission(&self, permission_uid: Uuid, db: &PgPool) -> Result<bool> {
+        Ok(self
+            .permissions(db)
+            .await?
             .into_iter()
             .any(|p| p.uid == permission_uid))
     }
 }
 
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow, sqlx::Type)]
 pub struct Role {
     pub uid: Uuid,
     pub name: String,
 }
 
+// impl sqlx::Type<sqlx::Postgres> for Role {
+//     fn type_info() -> sqlx::postgres::PgTypeInfo {
+//         sqlx::postgres::PgTypeInfo::with_name("_roles")
+//     }
+// }
+
 impl Role {
-    pub async fn new(name: String, db: &PgPool) -> Result<Role, AuthError> {
-        let role = query_as!(
+    pub async fn new(name: String, db: &PgPool) -> Result<Role> {
+        Ok(query_as!(
             Role,
             "INSERT INTO roles (name) VALUES ($1) RETURNING *",
             name
         )
         .fetch_one(db)
-        .await
-        .map_err(AuthError::Sqlx)?;
-
-        Ok(role)
+        .await?)
     }
 
-    pub async fn all(db: &PgPool) -> Result<Vec<Role>, AuthError> {
-        let roles = query_as!(Role, "SELECT * FROM roles")
-            .fetch_all(db)
-            .await
-            .map_err(AuthError::Sqlx)?;
-
-        Ok(roles)
+    pub async fn all(db: &PgPool) -> Result<Vec<Role>> {
+        Ok(query_as!(Role, "SELECT * FROM roles").fetch_all(db).await?)
     }
 
-    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Option<Role>, AuthError> {
-        let result = query_as!(Role, "SELECT * FROM roles WHERE uid = $1", uid)
-            .fetch_optional(db)
-            .await
-            .map_err(AuthError::Sqlx)?;
-
-        match result {
-            Some(role) => Ok(Some(role)),
-            None => Ok(None),
-        }
+    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Role> {
+        Ok(query_as!(Role, "SELECT * FROM roles WHERE uid = $1", uid)
+            .fetch_one(db)
+            .await?)
     }
 
-    pub async fn update(&self, name: String, db: &PgPool) -> Result<Role, AuthError> {
-        let role = query_as!(
+    pub async fn update(&self, name: String, db: &PgPool) -> Result<Role> {
+        Ok(query_as!(
             Role,
             "UPDATE roles SET name = $2 WHERE uid = $1 RETURNING *",
             self.uid,
             name
         )
         .fetch_one(db)
-        .await
-        .map_err(AuthError::Sqlx)?;
-
-        Ok(role)
+        .await?)
     }
 
-    pub async fn permissions(&self, db: &PgPool) -> Result<Vec<Permission>, AuthError> {
-        let permissions = query_as!(
+    pub async fn permissions(&self, db: &PgPool) -> Result<Vec<Permission>> {
+        Ok(query_as!(
             Permission,
             r#"
             SELECT p.* FROM permissions p
@@ -477,19 +423,13 @@ impl Role {
             self.uid
         )
         .fetch_all(db)
-        .await
-        .map_err(AuthError::Sqlx)?;
-
-        Ok(permissions)
+        .await?)
     }
 
-    pub async fn has_permission(
-        &self,
-        permission_uid: Uuid,
-        db: &PgPool,
-    ) -> Result<bool, AuthError> {
-        let role_permissions = self.permissions(db).await?;
-        Ok(role_permissions
+    pub async fn has_permission(&self, permission_uid: Uuid, db: &PgPool) -> Result<bool> {
+        Ok(self
+            .permissions(db)
+            .await?
             .into_iter()
             .any(|p| p.uid == permission_uid))
     }
@@ -502,77 +442,58 @@ pub struct Permission {
 }
 
 impl Permission {
-    pub async fn new(name: String, db: &PgPool) -> Result<Permission, AuthError> {
-        let permission = query_as!(
+    pub async fn new(name: String, db: &PgPool) -> Result<Permission> {
+        Ok(query_as!(
             Permission,
             "INSERT INTO permissions (name) VALUES ($1) RETURNING *",
             name
         )
         .fetch_one(db)
-        .await
-        .map_err(AuthError::Sqlx)?;
-
-        Ok(permission)
+        .await?)
     }
 
-    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Option<Permission>, AuthError> {
-        let result = query_as!(Permission, "SELECT * FROM permissions WHERE uid = $1", uid)
-            .fetch_optional(db)
-            .await
-            .map_err(AuthError::Sqlx)?;
-
-        match result {
-            Some(permission) => Ok(Some(permission)),
-            None => Ok(None),
-        }
+    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Permission> {
+        Ok(
+            query_as!(Permission, "SELECT * FROM permissions WHERE uid = $1", uid)
+                .fetch_one(db)
+                .await?,
+        )
     }
 
-    pub async fn all(db: &PgPool) -> Result<Vec<Permission>, AuthError> {
-        let permissions = query_as!(Permission, "SELECT * FROM permissions")
+    pub async fn all(db: &PgPool) -> Result<Vec<Permission>> {
+        Ok(query_as!(Permission, "SELECT * FROM permissions")
             .fetch_all(db)
-            .await
-            .map_err(AuthError::Sqlx)?;
-
-        Ok(permissions)
+            .await?)
     }
 
-    pub async fn update(&self, name: String, db: &PgPool) -> Result<Permission, AuthError> {
-        let permission = query_as!(
+    pub async fn update(&self, name: String, db: &PgPool) -> Result<Permission> {
+        Ok(query_as!(
             Permission,
             "UPDATE permissions SET name = $2 WHERE uid = $1 RETURNING *",
             self.uid,
             name
         )
         .fetch_one(db)
-        .await
-        .map_err(AuthError::Sqlx)?;
-
-        Ok(permission)
+        .await?)
     }
 
-    pub async fn roles(&self, db: &PgPool) -> Result<Vec<Role>, AuthError> {
-        let roles = query_as!(
+    pub async fn roles(&self, db: &PgPool) -> Result<Vec<Role>> {
+        Ok(query_as!(
             Role,
             r#"
             SELECT r.* FROM roles r
-
             JOIN roles_permissions rp ON rp.role_uid = r.uid 
             JOIN permissions p ON rp.permission_uid = p.uid 
-
             WHERE p.uid = $1
         "#,
             self.uid
         )
         .fetch_all(db)
-        .await
-        .map_err(AuthError::Sqlx)?;
-
-        Ok(roles)
+        .await?)
     }
 
-    pub async fn has_role(&self, role_uid: Uuid, db: &PgPool) -> Result<bool, AuthError> {
-        let permission_roles = self.roles(db).await?;
-        Ok(permission_roles.into_iter().any(|r| r.uid == role_uid))
+    pub async fn has_role(&self, role_uid: Uuid, db: &PgPool) -> Result<bool> {
+        Ok(self.roles(db).await?.into_iter().any(|r| r.uid == role_uid))
     }
 }
 
@@ -591,3 +512,32 @@ impl GoogleOauth {
             .url()
     }
 }
+
+// impl FromRow<'_, PgRow> for UserWithRoles {
+//     fn from_row(row: &PgRow) -> sqlx::Result<Self> {
+//         let user = User {
+//             uid: row.get("uid"),
+//             name: row.get("name"),
+//             username: row.get("username"),
+//             email: row.get("email"),
+//             provider: row.get("provider"),
+//             created_at: row.get("created_at"),
+//             updated_at: row.get("updated_at"),
+//             deleted_at: row.get("deleted_at"),
+//             last_sign: row.get("last_sign"),
+//             password: None,
+//             access_token: None,
+//             refresh_token: None,
+//         };
+
+//         let roles = row.get("roles!: Vec<Role>");
+
+//         Ok(Self { user, roles })
+//     }
+// }
+
+// impl PgHasArrayType for Role {
+//     fn array_type_info() -> PgTypeInfo {
+//         PgTypeInfo::with_name("roles!: Vec<Role>")
+//     }
+// }

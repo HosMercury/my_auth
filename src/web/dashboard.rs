@@ -26,6 +26,7 @@ pub mod get {
 
     #[axum::debug_handler]
     pub async fn dashboard(auth_user: User) -> DashboardTemplate {
+
         DashboardTemplate {
             title: "dashboard".to_owned(),
             username: auth_user.name,
