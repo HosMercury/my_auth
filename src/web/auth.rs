@@ -78,11 +78,17 @@ mod post {
     pub async fn password(
         session: Session,
         messages: Messages,
-        State(AppState { db, client }): State<AppState>,
+        State(state): State<AppState>,
         Form(payload): Form<PasswordCreds>,
     ) -> impl IntoResponse {
         // No validation needed here -- think again
-        match User::authenticate(Credentials::Password(payload.clone()), &db, client).await {
+        match User::authenticate(
+            Credentials::Password(payload.clone()),
+            &state.db,
+            state.client,
+        )
+        .await
+        {
             Ok(Some(user)) => {
                 save_session_user(user, &session).await;
                 Redirect::to("/").into_response()

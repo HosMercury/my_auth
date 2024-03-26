@@ -71,9 +71,9 @@ pub mod get {
         Path(uid): Path<Uuid>,
         State(state): State<AppState>,
     ) -> impl IntoResponse {
-        let res = auth_user.with_roles(&state.db).await.unwrap();
+       
 
-        println!("{}", json!(res));
+        // println!("{}", json!(res));
 
         let result = User::find(uid, &state.db).await;
         match result {

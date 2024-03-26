@@ -46,7 +46,7 @@ mod post {
 
     pub async fn callback(
         session: Session,
-        State(AppState { client, db }): State<AppState>,
+        State(state): State<AppState>,
         Query(OauthUrlQuery {
             code,
             state: new_state,
@@ -62,7 +62,7 @@ mod post {
             new_state,
         });
 
-        match User::authenticate(creds, &db, client).await {
+        match User::authenticate(creds, &state.db, state.client).await {
             Ok(Some(_)) => Redirect::to("/").into_response(),
             Ok(None) => Redirect::to("/signin").into_response(),
             Err(_) => Redirect::to("/signin").into_response(),

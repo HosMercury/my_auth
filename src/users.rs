@@ -1,3 +1,4 @@
+use crate::AppState;
 use crate::{validations, web::keygen::os_keygen};
 use anyhow::Result;
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
@@ -7,6 +8,7 @@ use password_auth::{generate_hash, verify_password};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_trim::*;
+use sqlx::Row;
 use sqlx::{query_as, FromRow, PgPool};
 use std::fmt::Debug;
 use time::OffsetDateTime;
@@ -142,7 +144,7 @@ pub struct ApiUser {
     pub email: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct UserWithRoles {
     pub user: User,
     pub roles: Vec<Role>,
@@ -294,11 +296,38 @@ impl User {
         )
     }
 
-    pub async fn with_roles(&self, db: &PgPool) -> Result<UserWithRoles> {
-        Ok(UserWithRoles {
-            user: self.clone(),
-            roles: self.roles(db).await?,
-        })
+    pub async fn with_roles(&self, state: &AppState) -> Result<UserWithRoles> {
+        let row = sqlx::query(
+            r#"
+            SELECT users.*, JSON_AGG(roles.*) AS roles
+            FROM users 
+            JOIN users_roles ON users_roles.user_uid = users.uid
+            JOIN roles ON users_roles.role_uid = roles.uid
+            WHERE users.uid = $1
+            GROUP BY users.uid;
+            "#,
+        )
+        .bind(self.uid)
+        .fetch_one(&state.db)
+        .await?;
+        let user = User {
+            uid: row.get("uid"),
+            name: row.get("name"),
+            username: row.get("username"),
+            email: row.get("email"),
+            provider: row.get("provider"),
+            password: None,
+            access_token: None,
+            refresh_token: None,
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+            deleted_at: row.get("deleted_at"),
+            last_sign: row.get("last_sign"),
+        };
+
+        let roles: Vec<Role> = serde_json::from_value(row.get("roles")).unwrap();
+
+        Ok(UserWithRoles { user, roles })
     }
 
     pub async fn deactivate(&self, db: &PgPool) -> Result<User> {
@@ -363,17 +392,11 @@ impl User {
     }
 }
 
-#[derive(Serialize, Deserialize, FromRow, sqlx::Type)]
+#[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct Role {
     pub uid: Uuid,
     pub name: String,
 }
-
-// impl sqlx::Type<sqlx::Postgres> for Role {
-//     fn type_info() -> sqlx::postgres::PgTypeInfo {
-//         sqlx::postgres::PgTypeInfo::with_name("_roles")
-//     }
-// }
 
 impl Role {
     pub async fn new(name: String, db: &PgPool) -> Result<Role> {
@@ -510,32 +533,3 @@ impl GoogleOauth {
             .url()
     }
 }
-
-// impl FromRow<'_, PgRow> for UserWithRoles {
-//     fn from_row(row: &PgRow) -> sqlx::Result<Self> {
-//         let user = User {
-//             uid: row.get("uid"),
-//             name: row.get("name"),
-//             username: row.get("username"),
-//             email: row.get("email"),
-//             provider: row.get("provider"),
-//             created_at: row.get("created_at"),
-//             updated_at: row.get("updated_at"),
-//             deleted_at: row.get("deleted_at"),
-//             last_sign: row.get("last_sign"),
-//             password: None,
-//             access_token: None,
-//             refresh_token: None,
-//         };
-
-//         let roles = row.get("roles!: Vec<Role>");
-
-//         Ok(Self { user, roles })
-//     }
-// }
-
-// impl PgHasArrayType for Role {
-//     fn array_type_info() -> PgTypeInfo {
-//         PgTypeInfo::with_name("roles!: Vec<Role>")
-//     }
-// }

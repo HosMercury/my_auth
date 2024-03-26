@@ -28,7 +28,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .try_init()?;
 
     dotenvy::dotenv()?;
-
     //////////////////////////////// OAuth ///////////////////////////////////
     let client_id = env::var("CLIENT_ID")
         .map(ClientId::new)
