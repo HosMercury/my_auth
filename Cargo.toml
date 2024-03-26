@@ -17,7 +17,6 @@ sqlx = { version = "0.7.4", features = [
   "postgres",
   "macros",
   "runtime-async-std",
-  "uuid",
   "time",
 ] }
 time = { version = "0.3.31", features = ["std"] }
@@ -25,7 +24,6 @@ tokio = { version = "1.35.1", features = ["full"] }
 tower-sessions = "0.11.0"
 tower-sessions-redis-store = "0.11.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-uuid = { version = "1.7.0", features = ["serde", "v4"] }
 validator = { version = "0.16.1", features = ["derive"] }
 reqwest = { version = "0.11.22", features = ["json"] }
 tower-http = { version = "0.5.1", features = ["fs"] }

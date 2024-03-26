@@ -2,7 +2,7 @@
 <div class="w-full flex justify-center items-center my-4">
   <table class="table-auto border-collapse border border-gray-500 p-1">
     <thead class="p-2">
-      <th class="table-header">UUID</th>
+      <th class="table-header">ID</th>
       <th class="table-header">Name</th>
       <th class="table-header">Usename</th>
       <th class="table-header">Email</th>
@@ -16,7 +16,7 @@
       {% for user in users %}
       <tr>
         <td class="table-cell">
-          <a class="underline" href="/users/{{ user.uid }}">{{ user.uid }}</a>
+          <a class="underline" href="/users/{{ user.id }}">{{ user.id }}</a>
         </td>
 
         <td class="table-cell">{{ user.name }}</td>

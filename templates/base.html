@@ -16,16 +16,16 @@
 
   <body class="font-primary">
     {% include "partials/nav.html" %}
-    <div id="content" class="min-h-screen w-full px-4">
-      <h1 class="text-3xl text-center my-1 border-b w-full py-1">
+    <div id="content" class="min-h-screen my-1 px-4">
+      <h1 class="text-3xl text-center border-b w-full py-4">
         {{ title|capitalize }}
       </h1>
       {% block content %} {% endblock %}
     </div>
     <footer
-      class="w-full bg-gray-700 text-white h-12 flex items-center justify-center"
+      class="mt-2 w-full bg-gray-700 text-white h-fit flex justify-center align-middle p-4"
     >
-      <span class="">{{ t!("rights_reserved")|capitalize }}</span>
+      <p class="">{{ t!("rights_reserved")|capitalize }}</p>
     </footer>
   </body>
 </html>

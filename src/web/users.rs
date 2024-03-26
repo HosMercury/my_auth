@@ -1,4 +1,4 @@
-use crate::users::User;
+use crate::users::{User, UserWithRoles};
 use crate::web::filters;
 use crate::AppState;
 use askama::Template;
@@ -20,7 +20,7 @@ pub struct ShowTemplate {
     title: String,
     username: String,
     locale: String,
-    user: User,
+    user_roles: UserWithRoles,
 }
 
 pub fn router() -> Router<AppState> {
@@ -28,7 +28,7 @@ pub fn router() -> Router<AppState> {
         "/users",
         Router::new()
             .route("/", get(self::get::index))
-            .route("/:uid", get(self::get::show)),
+            .route("/:id", get(self::get::show)),
     )
 }
 
@@ -41,8 +41,6 @@ pub mod get {
         response::Redirect,
     };
     use axum_messages::Messages;
-    use serde_json::json;
-    use uuid::Uuid;
 
     pub async fn index(
         auth_user: User,
@@ -68,20 +66,15 @@ pub mod get {
     pub async fn show(
         auth_user: User,
         messages: Messages,
-        Path(uid): Path<Uuid>,
+        Path(id): Path<i32>,
         State(state): State<AppState>,
     ) -> impl IntoResponse {
-       
-
-        // println!("{}", json!(res));
-
-        let result = User::find(uid, &state.db).await;
-        match result {
-            Ok(user) => ShowTemplate {
-                title: t!("show_user", name = user.name).to_string(),
+        match User::with_roles(id, &state.db).await {
+            Ok(user_roles) => ShowTemplate {
+                title: t!("show_user", name = user_roles.user.name).to_string(),
                 username: auth_user.name,
                 locale: locale().to_string(),
-                user,
+                user_roles,
             }
             .into_response(),
             Err(_) => {

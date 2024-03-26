@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS users (
-        uid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id SERIAL PRIMARY KEY,
         name VARCHAR(50) NOT NULL,
         username VARCHAR(50) UNIQUE,
         email VARCHAR(50) UNIQUE,
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
         last_sign TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
-CREATE INDEX idx_users_uid ON users (uid);
+CREATE INDEX idx_users_id ON users (id);
 
 ----------------- Seeding --------------
 INSERT INTO

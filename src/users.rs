@@ -13,13 +13,12 @@ use sqlx::{query_as, FromRow, PgPool};
 use std::fmt::Debug;
 use time::OffsetDateTime;
 use tokio::task;
-use uuid::Uuid;
 use validations::{validate_password, REGEX_NAME, REGEX_USERNAME};
 use validator::Validate;
 
 #[derive(Serialize, Deserialize, Clone, FromRow)]
 pub struct User {
-    pub uid: Uuid,
+    pub id: i32,
     pub name: String,
     pub username: Option<String>,
     pub email: Option<String>,
@@ -51,7 +50,7 @@ pub struct User {
 impl Debug for User {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("User")
-            .field("uid", &self.uid)
+            .field("id", &self.id)
             .field("name", &self.name)
             .field("username", &self.username)
             .field("email", &self.email)
@@ -288,30 +287,28 @@ impl User {
         Ok(query_as!(User, "SELECT * FROM users").fetch_all(db).await?)
     }
 
-    pub async fn find(uid: Uuid, db: &PgPool) -> Result<User> {
-        Ok(
-            query_as!(User, r#"SELECT * FROM users WHERE uid = $1"#, uid)
-                .fetch_one(db)
-                .await?,
-        )
+    pub async fn find(id: i32, db: &PgPool) -> Result<User> {
+        Ok(query_as!(User, r#"SELECT * FROM users WHERE id = $1"#, id)
+            .fetch_one(db)
+            .await?)
     }
 
-    pub async fn with_roles(&self, state: &AppState) -> Result<UserWithRoles> {
+    pub async fn with_roles(id: i32, db: &PgPool) -> Result<UserWithRoles> {
         let row = sqlx::query(
             r#"
             SELECT users.*, JSON_AGG(roles.*) AS roles
             FROM users 
-            JOIN users_roles ON users_roles.user_uid = users.uid
-            JOIN roles ON users_roles.role_uid = roles.uid
-            WHERE users.uid = $1
-            GROUP BY users.uid;
+            JOIN users_roles ON users_roles.user_id = users.id
+            JOIN roles ON users_roles.role_id = roles.id
+            WHERE users.id = $1
+            GROUP BY users.id;
             "#,
         )
-        .bind(self.uid)
-        .fetch_one(&state.db)
+        .bind(id)
+        .fetch_one(db)
         .await?;
         let user = User {
-            uid: row.get("uid"),
+            id: row.get("id"),
             name: row.get("name"),
             username: row.get("username"),
             email: row.get("email"),
@@ -333,9 +330,9 @@ impl User {
     pub async fn deactivate(&self, db: &PgPool) -> Result<User> {
         Ok(query_as!(
             User,
-            r#"UPDATE users SET deleted_at = $1 WHERE uid = $2 RETURNING *"#,
+            r#"UPDATE users SET deleted_at = $1 WHERE id = $2 RETURNING *"#,
             OffsetDateTime::now_utc(),
-            self.uid
+            self.id
         )
         .fetch_one(db)
         .await?)
@@ -348,12 +345,12 @@ impl User {
             r#"
         SELECT r.* FROM roles r
 
-        JOIN users_roles ur ON r.uid = ur.role_uid
-        JOIN users u ON ur.user_uid = u.uid
+        JOIN users_roles ur ON r.id = ur.role_id
+        JOIN users u ON ur.user_id = u.id
 
-        WHERE u.uid = $1
+        WHERE u.id = $1
         "#,
-            self.uid
+            self.id
         )
         .fetch_all(db)
         .await?)
@@ -366,35 +363,35 @@ impl User {
             r#"
         SELECT p.* FROM permissions p
 
-        JOIN roles_permissions rp ON p.uid = rp.permission_uid
-        JOIN roles r ON rp.role_uid = r.uid
-        JOIN users_roles ur ON r.uid = ur.role_uid
-        JOIN users u ON ur.user_uid = u.uid
+        JOIN roles_permissions rp ON p.id = rp.permission_id
+        JOIN roles r ON rp.role_id = r.id
+        JOIN users_roles ur ON r.id = ur.role_id
+        JOIN users u ON ur.user_id = u.id
 
-        WHERE u.uid = $1
+        WHERE u.id = $1
         "#,
-            self.uid
+            self.id
         )
         .fetch_all(db)
         .await?)
     }
 
-    pub async fn has_role(&self, role_uid: Uuid, db: &PgPool) -> Result<bool> {
-        Ok(self.roles(db).await?.into_iter().any(|r| r.uid == role_uid))
+    pub async fn has_role(&self, role_id: i32, db: &PgPool) -> Result<bool> {
+        Ok(self.roles(db).await?.into_iter().any(|r| r.id == role_id))
     }
 
-    pub async fn has_permission(&self, permission_uid: Uuid, db: &PgPool) -> Result<bool> {
+    pub async fn has_permission(&self, permission_id: i32, db: &PgPool) -> Result<bool> {
         Ok(self
             .permissions(db)
             .await?
             .into_iter()
-            .any(|p| p.uid == permission_uid))
+            .any(|p| p.id == permission_id))
     }
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct Role {
-    pub uid: Uuid,
+    pub id: i32,
     pub name: String,
 }
 
@@ -413,8 +410,8 @@ impl Role {
         Ok(query_as!(Role, "SELECT * FROM roles").fetch_all(db).await?)
     }
 
-    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Role> {
-        Ok(query_as!(Role, "SELECT * FROM roles WHERE uid = $1", uid)
+    pub async fn find(id: i32, db: &PgPool) -> Result<Role> {
+        Ok(query_as!(Role, "SELECT * FROM roles WHERE id = $1", id)
             .fetch_one(db)
             .await?)
     }
@@ -422,8 +419,8 @@ impl Role {
     pub async fn update(&self, name: String, db: &PgPool) -> Result<Role> {
         Ok(query_as!(
             Role,
-            "UPDATE roles SET name = $2 WHERE uid = $1 RETURNING *",
-            self.uid,
+            "UPDATE roles SET name = $2 WHERE id = $1 RETURNING *",
+            self.id,
             name
         )
         .fetch_one(db)
@@ -436,29 +433,29 @@ impl Role {
             r#"
             SELECT p.* FROM permissions p
 
-            JOIN roles_permissions rp ON rp.permission_uid = p.uid 
-            JOIN roles r ON rp.role_uid = r.uid 
+            JOIN roles_permissions rp ON rp.permission_id = p.id 
+            JOIN roles r ON rp.role_id = r.id 
 
-            WHERE r.uid = $1
+            WHERE r.id = $1
         "#,
-            self.uid
+            self.id
         )
         .fetch_all(db)
         .await?)
     }
 
-    pub async fn has_permission(&self, permission_uid: Uuid, db: &PgPool) -> Result<bool> {
+    pub async fn has_permission(&self, permission_id: i32, db: &PgPool) -> Result<bool> {
         Ok(self
             .permissions(db)
             .await?
             .into_iter()
-            .any(|p| p.uid == permission_uid))
+            .any(|p| p.id == permission_id))
     }
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct Permission {
-    pub uid: Uuid,
+    pub id: i32,
     pub name: String,
 }
 
@@ -473,9 +470,9 @@ impl Permission {
         .await?)
     }
 
-    pub async fn find(uid: Uuid, db: &PgPool) -> Result<Permission> {
+    pub async fn find(id: i32, db: &PgPool) -> Result<Permission> {
         Ok(
-            query_as!(Permission, "SELECT * FROM permissions WHERE uid = $1", uid)
+            query_as!(Permission, "SELECT * FROM permissions WHERE id = $1", id)
                 .fetch_one(db)
                 .await?,
         )
@@ -490,8 +487,8 @@ impl Permission {
     pub async fn update(&self, name: String, db: &PgPool) -> Result<Permission> {
         Ok(query_as!(
             Permission,
-            "UPDATE permissions SET name = $2 WHERE uid = $1 RETURNING *",
-            self.uid,
+            "UPDATE permissions SET name = $2 WHERE id = $1 RETURNING *",
+            self.id,
             name
         )
         .fetch_one(db)
@@ -503,18 +500,18 @@ impl Permission {
             Role,
             r#"
             SELECT r.* FROM roles r
-            JOIN roles_permissions rp ON rp.role_uid = r.uid 
-            JOIN permissions p ON rp.permission_uid = p.uid 
-            WHERE p.uid = $1
+            JOIN roles_permissions rp ON rp.role_id = r.id 
+            JOIN permissions p ON rp.permission_id = p.id 
+            WHERE p.id = $1
         "#,
-            self.uid
+            self.id
         )
         .fetch_all(db)
         .await?)
     }
 
-    pub async fn has_role(&self, role_uid: Uuid, db: &PgPool) -> Result<bool> {
-        Ok(self.roles(db).await?.into_iter().any(|r| r.uid == role_uid))
+    pub async fn has_role(&self, role_id: i32, db: &PgPool) -> Result<bool> {
+        Ok(self.roles(db).await?.into_iter().any(|r| r.id == role_id))
     }
 }
 
