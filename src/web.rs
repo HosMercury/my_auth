@@ -1,9 +1,11 @@
 use crate::AppState;
 use axum::{middleware, Router};
 use axum_messages::MessagesManagerLayer;
-use time::Duration;
 use tower_http::services::ServeDir;
-use tower_sessions::{cookie::SameSite, Expiry, SessionManagerLayer};
+use tower_sessions::{
+    cookie::{time::Duration, SameSite},
+    Expiry, SessionManagerLayer,
+};
 use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
 
 pub mod auth;
@@ -256,11 +258,9 @@ mod extractors {
 
 pub mod filters {
     use askama::Result;
-    use time::{macros::format_description, OffsetDateTime};
+    use chrono::{DateTime, Local};
 
-    pub fn time(t: &OffsetDateTime) -> Result<String> {
-        let format = format_description!("[day]-[month]-[year] [hour repr:12]:[minute] [period]");
-
-        Ok(t.format(&format).unwrap())
+    pub fn time(t: &DateTime<Local>) -> Result<String> {
+        Ok(t.format("%d-%m-%Y %H:%M").to_string())
     }
 }

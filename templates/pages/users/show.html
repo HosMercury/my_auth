@@ -1,6 +1,9 @@
 {% extends "./base.html" %} {% block content %}
-<div class="flex items-center m-4">
-  <table>
+<div class="flex m-4">
+  <table class="w-1/3 bg-gray-50">
+    <caption class="caption-top text-3xl">
+      User Info
+    </caption>
     <tbody>
       <tr>
         <td class="table-header">{{ t!("id")|uppercase }}</td>
@@ -53,6 +56,24 @@
           %} {{ deleted_at|time }} {% when None %} - {% endmatch %}
         </td>
       </tr>
+    </tbody>
+  </table>
+
+  <table class="mx-6 h-fit w-1/2">
+    <caption class="caption-top text-3xl">
+      Roles
+    </caption>
+    <tbody>
+      {% match user_roles.roles %} {% when Some with (roles) %} {% for role in
+      roles %}
+      <tr>
+        <td class="table-header">{{ t!("role")|capitalize }}</td>
+        <td class="table-cell">
+          {{ role.name }}
+          <a class="table-link" href="/roles/{{ role.id }}"> &#10142; </a>
+        </td>
+      </tr>
+      {% endfor %} {% when None %} {% endmatch %}
     </tbody>
   </table>
 </div>

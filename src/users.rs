@@ -1,22 +1,24 @@
-use crate::AppState;
 use crate::{validations, web::keygen::os_keygen};
 use anyhow::Result;
 use axum::http::header::{AUTHORIZATION, USER_AGENT};
+use chrono::{DateTime, Local};
 use oauth2::TokenResponse;
 use oauth2::{basic::BasicClient, reqwest::async_http_client, AuthorizationCode, CsrfToken, Scope};
 use password_auth::{generate_hash, verify_password};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use serde_trim::*;
-use sqlx::Row;
+use sqlx::postgres::PgRow;
+use sqlx::types::Json;
+use sqlx::Type;
+use sqlx::{query, Row};
 use sqlx::{query_as, FromRow, PgPool};
 use std::fmt::Debug;
-use time::OffsetDateTime;
 use tokio::task;
 use validations::{validate_password, REGEX_NAME, REGEX_USERNAME};
 use validator::Validate;
 
-#[derive(Serialize, Deserialize, Clone, FromRow)]
+#[derive(Serialize, Deserialize, Clone, Default, FromRow)]
 pub struct User {
     pub id: i32,
     pub name: String,
@@ -26,27 +28,19 @@ pub struct User {
 
     #[serde(skip_serializing)]
     pub password: Option<String>,
-
     #[serde(skip_serializing)]
     pub access_token: Option<String>,
-
     #[serde(skip_serializing)]
     pub refresh_token: Option<String>,
 
-    #[serde(with = "time::serde::iso8601")]
-    pub created_at: OffsetDateTime,
-
-    #[serde(with = "time::serde::iso8601::option")]
-    pub updated_at: Option<OffsetDateTime>,
-
-    #[serde(with = "time::serde::iso8601::option")]
-    pub deleted_at: Option<OffsetDateTime>,
-
-    #[serde(with = "time::serde::iso8601::option")]
-    pub last_sign: Option<OffsetDateTime>,
+    pub created_at: DateTime<Local>,
+    pub updated_at: Option<DateTime<Local>>,
+    pub deleted_at: Option<DateTime<Local>>,
+    pub last_sign: Option<DateTime<Local>>,
 }
 
-// access token.
+static  USER_FIELDS: &str = "id, name, last_login, created_at, username!, email!, updated_at!, deleted_at!, password!, access_token!, refresh_token!";
+
 impl Debug for User {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("User")
@@ -146,7 +140,33 @@ pub struct ApiUser {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserWithRoles {
     pub user: User,
-    pub roles: Vec<Role>,
+    pub roles: Option<Vec<Role>>,
+}
+
+impl FromRow<'_, PgRow> for UserWithRoles {
+    fn from_row(row: &PgRow) -> sqlx::Result<Self> {
+        let user: User = User::from_row(row).expect("deser user failed");
+
+        let roles = row
+            .try_get::<Json<Vec<Role>>, _>("roles")
+            .map(|x| if x.is_empty() { None } else { Some(x.0) })
+            .unwrap_or(None);
+
+        println!("{:?}", roles);
+
+        Ok(Self { user, roles })
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RoleWithPermissions {
+    pub roles: Option<Vec<Permission>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserWithRolesWithPermissions {
+    pub user: User,
+    pub roles_with_permissions: Option<RoleWithPermissions>,
 }
 
 impl User {
@@ -157,13 +177,12 @@ impl User {
     ) -> Result<Option<User>> {
         match creds {
             Credentials::Password(PasswordCreds { username, password }) => {
-                let user = query_as!(
-                    Self,
-                    r#"SELECT * FROM users WHERE username = $1 
+                let user: Option<User> = query_as(
+                    "SELECT * FROM users WHERE username = $1 
                     AND password IS NOT NULL 
-                    AND deleted_at IS NULL"#,
-                    username,
+                    AND deleted_at IS NULL",
                 )
+                .bind(username)
                 .fetch_optional(db)
                 .await?;
 
@@ -171,7 +190,7 @@ impl User {
                 let user_result = task::spawn_blocking(|| {
                     // We're using password-based authentication: this works by comparing our form
                     // input with an argon2 password hash.
-                    Ok(user.filter(|user| {
+                    Ok(user.filter(|user: &User| {
                         let Some(ref db_password) = user.password else {
                             return false;
                         };
@@ -218,24 +237,21 @@ impl User {
                     .json::<UserInfo>()
                     .await?;
 
-                Ok(Some(
-                    query_as!(
-                        User,
-                        r#"
-                        INSERT INTO users (name, email, access_token, provider)
+                let user: User = query_as(
+                    "INSERT INTO users (name, email, access_token, provider)
                         VALUES ($1, $2, $3, $4)
                         ON CONFLICT(email) DO UPDATE
                         SET access_token = excluded.access_token
-                        RETURNING *
-                    "#,
-                        user_info.given_name,
-                        user_info.email,
-                        token_response.access_token().secret(),
-                        "google"
-                    )
-                    .fetch_one(db)
-                    .await?,
-                ))
+                        RETURNING *",
+                )
+                .bind(user_info.given_name)
+                .bind(user_info.email)
+                .bind(token_response.access_token().secret())
+                .bind("google")
+                .fetch_one(db)
+                .await?;
+
+                Ok(Some(user))
             }
         }
     }
@@ -252,104 +268,133 @@ impl User {
                     .await
                     .expect("Hashing password failed");
 
-                Ok(query_as!(
-                    Self,
+                let user: User = query_as(
                     r#"
                     INSERT INTO users (name, username, password)
                     VALUES ($1, $2, $3)
                     RETURNING *
                 "#,
-                    name,
-                    username,
-                    hashed_password
                 )
+                .bind(name)
+                .bind(username)
+                .bind(hashed_password)
                 .fetch_one(db)
-                .await?)
+                .await?;
+
+                Ok(user)
             }
-            RegisterUser::ApiUser(ApiUser { name, email }) => Ok(query_as!(
-                Self,
-                r#"
-                    INSERT INTO users (name, email, provider, access_token)
-                    VALUES ($1, $2, $3, $4)
-                    RETURNING *
-                "#,
-                name,
-                email,
-                "api",
-                os_keygen()
-            )
-            .fetch_one(db)
-            .await?),
+            RegisterUser::ApiUser(ApiUser { name, email }) => {
+                let user: User = query_as(
+                    "INSERT INTO users (name, email, provider, access_token)
+                        VALUES ($1, $2, $3, $4)
+                        RETURNING *",
+                )
+                .bind(name)
+                .bind(email)
+                .bind("api")
+                .bind(os_keygen())
+                .fetch_one(db)
+                .await?;
+
+                Ok(user)
+            }
         }
     }
 
     pub async fn all(db: &PgPool) -> Result<Vec<User>> {
-        Ok(query_as!(User, "SELECT * FROM users").fetch_all(db).await?)
+        let users: Vec<User> = query_as("SELECT * FROM users").fetch_all(db).await?;
+        Ok(users)
     }
 
     pub async fn find(id: i32, db: &PgPool) -> Result<User> {
-        Ok(query_as!(User, r#"SELECT * FROM users WHERE id = $1"#, id)
+        let user = query_as("SELECT * FROM users WHERE id = $1")
+            .bind(id)
             .fetch_one(db)
-            .await?)
+            .await?;
+
+        Ok(user)
     }
 
     pub async fn with_roles(id: i32, db: &PgPool) -> Result<UserWithRoles> {
-        let row = sqlx::query(
-            r#"
-            SELECT users.*, JSON_AGG(roles.*) AS roles
-            FROM users 
-            JOIN users_roles ON users_roles.user_id = users.id
-            JOIN roles ON users_roles.role_id = roles.id
+        let user_with_roles: UserWithRoles = sqlx::query_as(
+            "SELECT users.*, JSON_AGG(roles.*) As roles FROM users
+            LEFT JOIN users_roles ON users_roles.user_id = users.id
+            LEFT JOIN roles ON users_roles.role_id = roles.id
             WHERE users.id = $1
-            GROUP BY users.id;
-            "#,
+            GROUP BY users.id;",
         )
         .bind(id)
         .fetch_one(db)
         .await?;
-        let user = User {
-            id: row.get("id"),
-            name: row.get("name"),
-            username: row.get("username"),
-            email: row.get("email"),
-            provider: row.get("provider"),
-            password: None,
-            access_token: None,
-            refresh_token: None,
-            created_at: row.get("created_at"),
-            updated_at: row.get("updated_at"),
-            deleted_at: row.get("deleted_at"),
-            last_sign: row.get("last_sign"),
-        };
 
-        let roles: Vec<Role> = serde_json::from_value(row.get("roles")).unwrap();
+        Ok(user_with_roles)
+    }
 
-        Ok(UserWithRoles { user, roles })
+    pub async fn with_roles_permissions(id: i32, db: &PgPool) -> Result<()> {
+        let sql = "
+            SELECT users.*,
+            JSON_AGG(user_roles.roles_permissions) as roles
+            FROM (
+                SELECT
+                users.id,
+                JSON_BUILD_OBJECT(
+                    'role', roles.name,
+                    'permissions', JSON_AGG(permissions.*)
+                ) as roles_permissions
+                    FROM users
+                    JOIN users_roles ON users_roles.user_id = users.id
+                    JOIN roles ON roles.id = users_roles.role_id
+                    JOIN roles_permissions ON roles_permissions.role_id = roles.id
+                    JOIN permissions ON permissions.id = roles_permissions.permission_id
+                    WHERE users.id = 1
+                GROUP BY users.id, roles.id
+            ) as user_roles
+            JOIN users ON users.id = user_roles.id
+            GROUP BY users.id;
+            ";
+
+        let row = query(sql).fetch_one(db).await?;
+
+        // let user = User {
+        //     id: row.get("id"),
+        //     name: row.get("name"),
+        //     username: row.get("username"),
+        //     email: row.get("email"),
+        //     provider: row.get("provider"),
+        //     password: None,
+        //     access_token: None,
+        //     refresh_token: None,
+        //     created_at: row.get("created_at"),
+        //     updated_at: row.get("updated_at"),
+        //     deleted_at: row.get("deleted_at"),
+        //     last_sign: row.get("last_sign"),
+        // };
+
+        // let roles: UserWithRolesWithPermissions =
+        //     serde_json::from_value(row.get("roles")).unwrap_or(None);
+
+        // println!("roles: {:#?}", roles);
+
+        Ok(())
     }
 
     pub async fn deactivate(&self, db: &PgPool) -> Result<User> {
-        Ok(query_as!(
-            User,
-            r#"UPDATE users SET deleted_at = $1 WHERE id = $2 RETURNING *"#,
-            OffsetDateTime::now_utc(),
-            self.id
-        )
-        .fetch_one(db)
-        .await?)
+        let user = query_as("UPDATE users SET deleted_at = $1 WHERE id = $2 RETURNING *")
+            .bind(Local::now())
+            .bind(self.id)
+            .fetch_one(db)
+            .await?;
+        Ok(user)
     }
 
     pub async fn roles(&self, db: &PgPool) -> Result<Vec<Role>> {
         // if no permissions - it will return empty vec
         Ok(query_as!(
             Role,
-            r#"
-        SELECT r.* FROM roles r
-
+            "SELECT r.* FROM roles r
         JOIN users_roles ur ON r.id = ur.role_id
         JOIN users u ON ur.user_id = u.id
-
-        WHERE u.id = $1
-        "#,
+        WHERE u.id = $1",
             self.id
         )
         .fetch_all(db)
@@ -360,22 +405,17 @@ impl User {
         // if no permissions - it will return empty vec
         Ok(query_as!(
             Permission,
-            r#"
-        SELECT p.* FROM permissions p
-
+            "SELECT p.* FROM permissions p
         JOIN roles_permissions rp ON p.id = rp.permission_id
         JOIN roles r ON rp.role_id = r.id
         JOIN users_roles ur ON r.id = ur.role_id
         JOIN users u ON ur.user_id = u.id
-
-        WHERE u.id = $1
-        "#,
+        WHERE u.id = $1",
             self.id
         )
         .fetch_all(db)
         .await?)
     }
-
     pub async fn has_role(&self, role_id: i32, db: &PgPool) -> Result<bool> {
         Ok(self.roles(db).await?.into_iter().any(|r| r.id == role_id))
     }
@@ -389,7 +429,7 @@ impl User {
     }
 }
 
-#[derive(Serialize, Deserialize, FromRow, Debug)]
+#[derive(Serialize, Deserialize, FromRow, Type, Debug, Clone)]
 pub struct Role {
     pub id: i32,
     pub name: String,
@@ -430,14 +470,14 @@ impl Role {
     pub async fn permissions(&self, db: &PgPool) -> Result<Vec<Permission>> {
         Ok(query_as!(
             Permission,
-            r#"
+            "
             SELECT p.* FROM permissions p
 
             JOIN roles_permissions rp ON rp.permission_id = p.id 
             JOIN roles r ON rp.role_id = r.id 
 
             WHERE r.id = $1
-        "#,
+        ",
             self.id
         )
         .fetch_all(db)
@@ -498,12 +538,10 @@ impl Permission {
     pub async fn roles(&self, db: &PgPool) -> Result<Vec<Role>> {
         Ok(query_as!(
             Role,
-            r#"
-            SELECT r.* FROM roles r
+            "SELECT r.* FROM roles r
             JOIN roles_permissions rp ON rp.role_id = r.id 
             JOIN permissions p ON rp.permission_id = p.id 
-            WHERE p.id = $1
-        "#,
+            WHERE p.id = $1",
             self.id
         )
         .fetch_all(db)

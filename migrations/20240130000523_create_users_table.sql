@@ -3,14 +3,14 @@ CREATE TABLE IF NOT EXISTS users (
         name VARCHAR(50) NOT NULL,
         username VARCHAR(50) UNIQUE,
         email VARCHAR(50) UNIQUE,
-        password  VARCHAR(250),
+        password VARCHAR(250),
         access_token VARCHAR(250),
         refresh_token VARCHAR(250),
         provider VARCHAR(50) NOT NULL DEFAULT 'web',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMPTZ,
-        deleted_at TIMESTAMPTZ,
-        last_sign TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE,
+        deleted_at TIMESTAMP WITH TIME ZONE,
+        last_sign TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 
 CREATE INDEX idx_users_id ON users (id);

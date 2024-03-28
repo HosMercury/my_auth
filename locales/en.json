@@ -24,6 +24,7 @@
   "updated_at": "updated at",
   "deleted_at": "deleted at",
   "show_user": "show user %{name}",
+  "role": "role",
   "errors": {
     "required": "The %{field} field is required .",
     "min_length": "The %{field} field must be at least %{min} characters long",

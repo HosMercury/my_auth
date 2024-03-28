@@ -24,6 +24,7 @@
   "updated_at": "تاريخ التحديث",
   "deleted_at": "تاريخ المسح",
   "show_user": "عرض المستخدم %{name}",
+  "role": "دور",
   "errors": {
     "required": "خانة %{field} مطلوبة",
     "min_length": "خانة %{field} لا يجب أن تقل عن %{min} حروف",
