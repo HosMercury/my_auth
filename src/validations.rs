@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use validator::{ValidationError, ValidationErrors, ValidationErrorsKind};
 
 lazy_static! {
-    pub static ref REGEX_NAME: Regex = Regex::new(r"^[A-Za-z ]+$").unwrap();
-    pub static ref REGEX_USERNAME: Regex = Regex::new(r"^[a-zA-Z0-9_]{8,50}$").unwrap();
+    pub static ref NAME_REGEX: Regex = Regex::new(r"^[A-Za-z ]+$").unwrap();
+    pub static ref USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{8,50}$").unwrap();
 }
 
 // add Localized messages to validation errors
@@ -18,7 +18,7 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
             let code = e.code.clone();
             let params = e.params.clone();
             match e.code.as_ref() {
-                "regex_name" => {
+                "NAME_REGEX" => {
                     locale_errors.add(
                         field,
                         ValidationError {
@@ -28,7 +28,7 @@ pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
                         },
                     );
                 }
-                "regex_username" => {
+                "USERNAME_REGEX" => {
                     locale_errors.add(
                         field,
                         ValidationError {

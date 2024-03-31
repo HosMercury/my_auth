@@ -1,5 +1,6 @@
 mod api;
 mod users;
+mod authz;
 mod validations;
 mod web;
 

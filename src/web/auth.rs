@@ -81,7 +81,7 @@ mod post {
         State(state): State<AppState>,
         Form(payload): Form<PasswordCreds>,
     ) -> impl IntoResponse {
-        // No validation needed here -- think again
+        // No validation needed here -need to be checkhed again
         match User::authenticate(
             Credentials::Password(payload.clone()),
             &state.db,
@@ -98,7 +98,8 @@ mod post {
                 save_previous_data(&payload, &session).await;
                 Redirect::to("/signin").into_response()
             }
-            Err(_) => {
+            Err(e) => {
+                println!("{}", e);
                 messages.error(t!("errors.system_error"));
                 save_previous_data(&payload, &session).await;
                 Redirect::to("/signin").into_response()

@@ -1,6 +1,6 @@
-use crate::users::{User, UserWithRoles};
 use crate::web::filters;
 use crate::AppState;
+use crate::{authz::UserWithRoles, users::User};
 use askama::Template;
 use axum::{routing::get, Router};
 use rust_i18n::locale;

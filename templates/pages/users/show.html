@@ -64,8 +64,7 @@
       Roles
     </caption>
     <tbody>
-      {% match user_roles.roles %} {% when Some with (roles) %} {% for role in
-      roles %}
+      {% for role in user_roles.roles %}
       <tr>
         <td class="table-header">{{ t!("role")|capitalize }}</td>
         <td class="table-cell">
@@ -73,7 +72,7 @@
           <a class="table-link" href="/roles/{{ role.id }}"> &#10142; </a>
         </td>
       </tr>
-      {% endfor %} {% when None %} {% endmatch %}
+      {% endfor %}
     </tbody>
   </table>
 </div>

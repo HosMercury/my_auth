@@ -261,6 +261,6 @@ pub mod filters {
     use chrono::{DateTime, Local};
 
     pub fn time(t: &DateTime<Local>) -> Result<String> {
-        Ok(t.format("%d-%m-%Y %H:%M").to_string())
+        Ok(t.format("%d-%m-%Y %H:%M %p").to_string())
     }
 }

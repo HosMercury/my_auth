@@ -7,10 +7,10 @@ CREATE TABLE IF NOT EXISTS users (
         access_token VARCHAR(250),
         refresh_token VARCHAR(250),
         provider VARCHAR(50) NOT NULL DEFAULT 'web',
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP WITH TIME ZONE,
-        deleted_at TIMESTAMP WITH TIME ZONE,
-        last_sign TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ,
+        deleted_at TIMESTAMPTZ,
+        last_sign TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     );
 
 CREATE INDEX idx_users_id ON users (id);
