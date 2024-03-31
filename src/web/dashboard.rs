@@ -20,7 +20,7 @@ pub fn router() -> Router<AppState> {
 pub mod get {
     use crate::users::User;
     use askama_axum::IntoResponse;
-    use axum::{extract::State, Json};
+    use axum::extract::State;
 
     use super::*;
 
@@ -35,10 +35,6 @@ pub mod get {
 
     #[axum::debug_handler]
     pub async fn test(_: User, State(state): State<AppState>) -> impl IntoResponse {
-        let res = User::with_roles_permissions(1, &state.db).await.unwrap();
-
-        println!("{:?}", res);
-
         "test".into_response()
     }
 }
