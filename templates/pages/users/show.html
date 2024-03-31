@@ -64,15 +64,16 @@
       Roles
     </caption>
     <tbody>
-      {% for role in user_roles.roles %}
+      {% if user_roles.roles.roles.len() > 0 %} {% for role in
+      user_roles.roles.roles %}
       <tr>
         <td class="table-header">{{ t!("role")|capitalize }}</td>
         <td class="table-cell">
-          {{ role.name }}
-          <a class="table-link" href="/roles/{{ role.id }}"> &#10142; </a>
+          {{ role.role.name }}
+          <a class="table-link" href="/roles/{{ role.role.id }}"> &#10142; </a>
         </td>
       </tr>
-      {% endfor %}
+      {% endfor %}{% endif %}
     </tbody>
   </table>
 </div>

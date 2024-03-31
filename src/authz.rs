@@ -106,7 +106,8 @@ impl User {
 
         let user: User = User::from_row(&row)?;
 
-        let roles: RolesWithPermissions = serde_json::from_value(row.get("roles"))?;
+        let roles: RolesWithPermissions = serde_json::from_value(row.get("roles"))
+            .unwrap_or(RolesWithPermissions { roles: vec![] });
 
         let user_with_roles_with_permissions = UserWithRolesWithPermissions { user, roles };
 
@@ -130,7 +131,6 @@ pub struct UserWithRolesWithPermissions {
 // Role(s)
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RolesWithPermissions {
-    #[serde(skip_deserializing)]
     pub roles: Vec<RoleWithPermissions>,
 }
 
@@ -138,7 +138,6 @@ pub struct RolesWithPermissions {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RoleWithPermissions {
     pub role: Role,
-    #[serde(skip_deserializing)]
     pub permissions: Vec<Option<Permission>>,
 }
 

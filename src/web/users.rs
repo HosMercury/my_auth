@@ -1,3 +1,4 @@
+use crate::authz::UserWithRolesWithPermissions;
 use crate::web::filters;
 use crate::AppState;
 use crate::{authz::UserWithRoles, users::User};
@@ -20,7 +21,7 @@ pub struct ShowTemplate {
     title: String,
     username: String,
     locale: String,
-    user_roles: UserWithRoles,
+    user_roles: UserWithRolesWithPermissions,
 }
 
 pub fn router() -> Router<AppState> {
@@ -69,7 +70,11 @@ pub mod get {
         Path(id): Path<i32>,
         State(state): State<AppState>,
     ) -> impl IntoResponse {
-        match User::with_roles(id, &state.db).await {
+        let data = User::with_roles_permissions(id, &state.db).await;
+
+        println!("{:#?}", data);
+
+        match User::with_roles_permissions(id, &state.db).await {
             Ok(user_roles) => ShowTemplate {
                 title: t!("show_user", name = user_roles.user.name).to_string(),
                 username: auth_user.name,
