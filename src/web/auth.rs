@@ -18,7 +18,7 @@ use tower_sessions::Session;
 use validator::Validate;
 
 #[derive(Template)]
-#[template(path = "pages/signin.html")]
+#[template(path = "signin.html.jinja")]
 struct SigninTemplate {
     title: String,
     messages: Vec<Message>,
@@ -27,7 +27,7 @@ struct SigninTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "pages/signup.html")]
+#[template(path = "signup.html.jinja")]
 pub struct SignupTemplate {
     title: String,
     messages: Vec<Message>,

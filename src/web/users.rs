@@ -1,13 +1,13 @@
 use crate::authz::UserWithRolesWithPermissions;
+use crate::users::User;
 use crate::web::filters;
 use crate::AppState;
-use crate::{authz::UserWithRoles, users::User};
 use askama::Template;
 use axum::{routing::get, Router};
 use rust_i18n::locale;
 
 #[derive(Template)]
-#[template(path = "pages/users/index.html")]
+#[template(path = "users/index.html.jinja")]
 pub struct IndexTemplate {
     title: String,
     username: String,
@@ -16,7 +16,7 @@ pub struct IndexTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "pages/users/show.html")]
+#[template(path = "users/show.html.jinja")]
 pub struct ShowTemplate {
     title: String,
     username: String,

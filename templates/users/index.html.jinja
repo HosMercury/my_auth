@@ -1,4 +1,5 @@
-{% extends "./base.html" %} {% block content %}
+{% extends "base.html.jinja" %}
+{% block content %}
 <div class="w-full flex justify-center items-center my-4">
   <table class="table-auto border-collapse border border-gray-500 p-1">
     <thead class="p-2">
@@ -18,29 +19,46 @@
         <td class="table-cell">
           <a class="underline" href="/users/{{ user.id }}">{{ user.id }}</a>
         </td>
-
         <td class="table-cell">{{ user.name }}</td>
         <td class="table-cell">
-          {% match user.username %} {% when Some with (username) %} {{ username
-          }} {% when None %} - {% endmatch %}
+          {% match user.username %} {% when Some with (username) %}
+          {{ username }}
+          {% when None %}
+          -
+          {% endmatch %}
         </td>
         <td class="table-cell">
-          {% match user.email %} {% when Some with (email) %} {{ email }} {%
-          when None %} - {% endmatch %}
+          {% match user.email %}
+          {% when Some with (email) %}
+          {{ email }}
+          {% when None %}
+          -
+          {% endmatch %}
         </td>
         <td class="table-cell">{{ user.provider }}</td>
         <td class="table-cell">{{ user.created_at|time }}</td>
         <td class="table-cell">
-          {% match user.last_sign %} {% when Some with (last_sign) %} {{
-          last_sign|time}} {% when None %} - {% endmatch %}
+          {% match user.last_sign %}
+          {% when Some with (last_sign) %}
+          {{ last_sign|time}}
+          {% when None %}
+          -
+          {% endmatch %}
         </td>
         <td class="table-cell">
-          {% match user.updated_at %} {% when Some with (updated_at) %} {{
-          updated_at|time }} {% when None %} - {% endmatch %}
+          {% match user.updated_at %} {% when Some with (updated_at) %}
+          {{ updated_at|time }}
+          {% when None %}
+          -
+          {% endmatch %}
         </td>
         <td class="table-cell">
-          {% match user.deleted_at %} {% when Some with (deleted_at) %} {{
-          deleted_at|time }} {% when None %} - {% endmatch %}
+          {% match user.deleted_at %}
+          {% when Some with (deleted_at) %}
+          {{ deleted_at|time }}
+          {% when None %}
+          -
+          {% endmatch %}
         </td>
       </tr>
       {% endfor %}

@@ -1,0 +1,117 @@
+{% extends "base.html.jinja" %}
+{% block content %}
+<div class="flex m-4">
+  <div class="w-1/2 px-2">
+    <h2 class="text-2xl text-center m-4">User Info</h2>
+    <table class="bg-gray-50 w-full">
+      <tbody>
+        <tr>
+          <td class="table-header">{{ t!("id")|uppercase }}</td>
+          <td class="table-cell">{{user_roles.user.id }}</td>
+        </tr>
+        <tr>
+          <td class="table-header">{{ t!("name")|capitalize }}</td>
+          <td class="table-cell">{{user_roles.user.name }}</td>
+        </tr>
+        <tr>
+          <td class="table-header">{{ t!("username")|capitalize }}</td>
+          <td class="table-cell">
+            {% match user_roles.user.username %} {% when Some with (username) %}
+            {{ username }} {% when None %} - {% endmatch %}
+          </td>
+        </tr>
+        <tr>
+          <td class="table-header">{{ t!("email")|capitalize }}</td>
+          <td class="table-cell">
+            {% match user_roles.user.email %}
+            {% when Some with (email) %}
+            {{ email }}
+            {% when None %}
+            -
+            {% endmatch %}
+          </td>
+        </tr>
+        <tr>
+          <td class="table-header">{{ t!("provider")|capitalize }}</td>
+          <td class="table-cell">{{user_roles.user.provider }}</td>
+        </tr>
+        <tr>
+          <td class="table-header">{{ t!("last_sign")|capitalize }}</td>
+          <td class="table-cell">
+            {% match user_roles.user.last_sign %}
+            {% when Some with (last_sign) %}
+            {{ last_sign|time }}
+            {% when None %}
+            -
+            {% endmatch %}
+          </td>
+        </tr>
+        <tr>
+          <td class="table-header">{{ t!("created_at")|capitalize }}</td>
+          <td class="table-cell">{{user_roles.user.created_at }}</td>
+        </tr>
+        <tr>
+          <td class="table-header">{{ t!("updated_at") }}</td>
+          <td class="table-cell">
+            {% match user_roles.user.updated_at %}
+            {% when Some with (updated_at) %}
+            {{ updated_at|time }}
+            {% when None %}
+            -
+            {% endmatch %}
+          </td>
+        </tr>
+        <tr>
+          <td class="table-header">{{ t!("deleted_at")|capitalize }}</td>
+          <td class="table-cell">
+            {% match user_roles.user.deleted_at %}
+            {% when Some with (deleted_at) %}
+            {{ deleted_at|time }}
+            {% when None %}
+            -
+            {% endmatch %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex flex-col w-1/2 px-2">
+    <h2 class="text-2xl text-center m-4">Roles</h2>
+    {% if !user_roles.roles.roles.is_empty() %}
+    {% for role in user_roles.roles.roles %}
+    <div class="flex">
+      <div class="p-2 my-2">
+        <span class="font-bold">{{ role.role.name|trim }}</span>
+        <a class="arrow-link" href="/roles/{{ role.role.id }}">
+          &#10142;
+        </a>
+      </div>
+
+      {% if !role.permissions.is_empty() %}
+      <div class="p-4 m-2">
+        {% for permission in role.permissions%}
+        {% match permission %}
+        {% when Some with (permission) %}
+        <div class="flex w-full p-2 my-2">
+          {{ permission.name|trim }}
+          <a class="arrow-link" href="/permissions/{{ permission.id }}">
+            &#10142;
+          </a>
+        </div>
+        {% when None %}
+        <p class="text-center text-gray-400">No permissions</p>
+        {% endmatch %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-center text-gray-400">No permissions</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="text-center text-gray-400">No roles</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

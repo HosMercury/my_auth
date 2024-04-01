@@ -25,7 +25,7 @@
     @apply p-4 text-center border-b border-collapse border-gray-300;
   }
 
-  .table-link {
-    @apply bg-gray-400 text-white mx-2 rounded-3xl p-2;
+  .arrow-link {
+    @apply bg-gray-300 text-white mx-2 rounded-3xl p-1 px-2;
   }
 }

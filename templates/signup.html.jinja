@@ -1,0 +1,51 @@
+{% extends "guest.html.jinja" %}
+{% block content %}
+<div class="">
+  <form method="post" action="/signup" class="my-4 p-2">
+    <fieldset>
+      <legend class="font-bold my-2 text-3xl text-gray-500 mb-4 w-full border-b pb-2">
+        {{ t!("sign_up")|capitalize }}
+      </legend>
+
+      {% include "partials/locale.html.jinja" %}
+
+      <div class="my-2">
+        <label for="name" value="{{ previous_data.name }}" class="form-label">{{ t!("name")|capitalize }}</label>
+        <input required name="name" id="name" minlength="8" maxlength="50" placeholder="Hossam Maher"
+          class="form-input" />
+      </div>
+      <div class="my-2">
+        <label for="username" class="form-label">{{ t!("username")|capitalize }}</label>
+        <input required name="username" id="username" minlength="8" maxlength="50" placeholder="ferris"
+          value="{{ previous_data.username }}" class="form-input" />
+      </div>
+      <p class="form-hint">
+        {{ t!("username_validation_messages")|capitalize }}
+      </p>
+
+      <div class="my-2">
+        <label for="password" class="form-label">{{ t!("password")|capitalize }}</label>
+        <input required name="password" id="password" type="password" minlength="8" maxlength="50"
+          placeholder="hunter42" class="form-input" />
+      </div>
+      <div class="my-2">
+        <label for="password2" class="form-label">{{ t!("confirm_password")|capitalize }}</label>
+        <input required name="password2" id="password2" type="password" minlength="8" maxlength="50"
+          placeholder="hunter42H" class="form-input" />
+      </div>
+    </fieldset>
+
+    <p class="form-hint">{{ t!("password_validation_messages")|capitalize }}</p>
+
+    <button type="submit" class="bg-gray-500 text-white border rounded-md p-1 my-2 px-4 cursor-pointer">
+      {{ t!("send")|capitalize }}
+    </button>
+  </form>
+  <div class="m-1 mt-1 border-t pt-1">
+    {% include "partials/google.html.jinja" %}
+    <a href="/signin" class="underline text-gray-800 m-1 w-fit text-center p-1">
+      {{ t!("sign_in")|capitalize }}
+    </a>
+  </div>
+</div>
+{% endblock %}

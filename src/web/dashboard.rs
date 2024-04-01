@@ -4,7 +4,7 @@ use axum::{routing::get, Router};
 use rust_i18n::locale;
 
 #[derive(Template)]
-#[template(path = "pages/dashboard.html")]
+#[template(path = "dashboard.html.jinja")]
 pub struct DashboardTemplate {
     title: String,
     username: String,
