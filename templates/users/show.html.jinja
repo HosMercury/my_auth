@@ -1,4 +1,4 @@
-{% extends "base.html.jinja" %}
+{% extends "layouts/base.html.jinja" %}
 {% block content %}
 <div class="flex m-4">
   <div class="w-1/2 px-2">
@@ -48,7 +48,7 @@
         </tr>
         <tr>
           <td class="table-header">{{ t!("created_at")|capitalize }}</td>
-          <td class="table-cell">{{user_roles.user.created_at }}</td>
+          <td class="table-cell">{{user_roles.user.created_at|time }}</td>
         </tr>
         <tr>
           <td class="table-header">{{ t!("updated_at") }}</td>
@@ -78,40 +78,35 @@
 
   <div class="flex flex-col w-1/2 px-2">
     <h2 class="text-2xl text-center m-4">Roles</h2>
-    {% if !user_roles.roles.roles.is_empty() %}
-    {% for role in user_roles.roles.roles %}
-    <div class="flex">
-      <div class="p-2 my-2">
-        <span class="font-bold">{{ role.role.name|trim }}</span>
-        <a class="arrow-link" href="/roles/{{ role.role.id }}">
+    {% if user_roles.roles.is_empty() %}
+    <p class="text-slate-400 text-center">{{t!("no_roles")}}</p>
+    {% else %}
+    {% for role_perms in user_roles.roles %}
+    <div>
+      <div class="flex border-b-2 m-2  p-2 ">
+        <p class="">{{role_perms.role.name}}</p>
+        <a class="arrow-link" href="/roles/{{ role_perms.role.id }}">
           &#10142;
         </a>
       </div>
-
-      {% if !role.permissions.is_empty() %}
-      <div class="p-4 m-2">
-        {% for permission in role.permissions%}
-        {% match permission %}
-        {% when Some with (permission) %}
-        <div class="flex w-full p-2 my-2">
-          {{ permission.name|trim }}
+      {% if role_perms.permissions.is_empty() %}
+      <p class="text-slate-400 text-center">{{t!("no_permissions")}}</p>
+      {% else %}
+      <div class="flex">
+        {% for permission in role_perms.permissions %}
+        <div class="w-1/4 flex border-b-2 m-2 p-2 rounded-xl border bg-slate-100">
+          <span class="">{{permission.name}}</span>
           <a class="arrow-link" href="/permissions/{{ permission.id }}">
             &#10142;
           </a>
         </div>
-        {% when None %}
-        <p class="text-center text-gray-400">No permissions</p>
-        {% endmatch %}
         {% endfor %}
       </div>
-      {% else %}
-      <p class="text-center text-gray-400">No permissions</p>
-      {% endif %}
+      {% endif%}
     </div>
     {% endfor %}
-    {% else %}
-    <p class="text-center text-gray-400">No roles</p>
+
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 {% endblock %}

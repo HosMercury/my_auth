@@ -70,9 +70,9 @@ pub mod get {
         Path(id): Path<i32>,
         State(state): State<AppState>,
     ) -> impl IntoResponse {
-        let data = User::with_roles_permissions(id, &state.db).await;
+        // let data = User::with_roles(id, &state.db).await;
 
-        println!("{:#?}", data);
+        // println!("{:#?}", data);
 
         match User::with_roles_permissions(id, &state.db).await {
             Ok(user_roles) => ShowTemplate {

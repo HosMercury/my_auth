@@ -25,6 +25,8 @@
   "deleted_at": "تاريخ المسح",
   "show_user": "عرض المستخدم %{name}",
   "role": "الوظيفة",
+  "no_roles": "لا وظائف",
+  "no_permissions": "لا صلاحيات",
   "errors": {
     "required": "خانة %{field} مطلوبة",
     "min_length": "خانة %{field} لا يجب أن تقل عن %{min} حروف",

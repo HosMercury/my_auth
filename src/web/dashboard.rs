@@ -35,6 +35,9 @@ pub mod get {
 
     #[axum::debug_handler]
     pub async fn test(_: User, State(state): State<AppState>) -> impl IntoResponse {
+        let data = User::with_roles(1, &state.db).await.unwrap();
+
+        println!("{:#?}", data);
         "test".into_response()
     }
 }

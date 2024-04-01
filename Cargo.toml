@@ -13,10 +13,16 @@ oauth2 = { version = "4.4.2", features = ["reqwest"] }
 password-auth = "1.0.0"
 regex = "1.10.3"
 serde = "1.0.196"
-sqlx = { version = "0.7.4", features = ["postgres", "macros", "runtime-tokio", "runtime-tokio-rustls", "chrono"] }
+sqlx = { version = "0.7.4", features = [
+  "postgres",
+  "macros",
+  "runtime-tokio",
+  "runtime-tokio-rustls",
+  "chrono",
+] }
 tokio = { version = "1.35.1", features = ["full"] }
-tower-sessions = "0.11.0"
-tower-sessions-redis-store = "0.11.0"
+tower-sessions = "0.12.1"
+tower-sessions-redis-store = "0.12.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 validator = { version = "0.16.1", features = ["derive"] }
 reqwest = { version = "0.11.22", features = ["json"] }
@@ -26,7 +32,7 @@ async-trait = "0.1.77"
 rust-i18n = "3.0.1"
 serde_json = { version = "1.0.114", features = ["raw_value"] }
 serde_trim = "1.1.0"
-axum-messages = "0.5.0"
+axum-messages = "0.6.0"
 base64 = "0.22.0"
 rand = "0.8.5"
 rand_core = "0.6.4"
