@@ -65,52 +65,53 @@ impl User {
     }
 
     // Get the user and their roles and return permissions
-    pub async fn with_roles_permissions(id: i32, db: &PgPool) -> Result<()> {
+    pub async fn with_roles_permissions(
+        id: i32,
+        db: &PgPool,
+    ) -> Result<UserWithRolesWithPermissions> {
         let row = query(
             "WITH role_perms AS (
-                SELECT
-                    roles.id AS role_id,
-                    jsonb_build_object('role', roles.*, 'permissions', jsonb_agg(permissions.*)) AS role_permissions
-                FROM
-                    roles
-                    LEFT JOIN roles_permissions rp ON rp.role_id = roles.id
-                    LEFT JOIN permissions ON rp.permission_id = permissions.id
-                GROUP BY
-                    roles.id
-            ),
-            user_roles_permissions AS (
-                SELECT
-                    users.*,
-                    jsonb_build_object('roles', jsonb_agg(role_perms.role_permissions)) AS roles
-                FROM
-                    users
-                    LEFT JOIN users_roles ON users.id = users_roles.user_id
-                    LEFT JOIN roles ON users_roles.role_id = roles.id
-                    LEFT JOIN role_perms ON roles.id = role_perms.role_id
-                WHERE
-                    users.id = $1
-                GROUP BY
-                    users.id
-            )
             SELECT
-                *
+                roles.id AS role_id,
+                jsonb_build_object('role', roles.*, 'permissions', jsonb_agg(permissions.*)) AS role_permissions
             FROM
-                user_roles_permissions;",
+                roles
+                LEFT JOIN roles_permissions rp ON rp.role_id = roles.id
+                LEFT JOIN permissions ON rp.permission_id = permissions.id
+            GROUP BY
+                roles.id
+        ),
+        user_roles_permissions AS (
+            SELECT
+                users.*,
+                jsonb_build_object('roles', jsonb_agg(role_perms.role_permissions)) AS roles
+            FROM
+                users
+                LEFT JOIN users_roles ON users.id = users_roles.user_id
+                LEFT JOIN roles ON users_roles.role_id = roles.id
+                LEFT JOIN role_perms ON roles.id = role_perms.role_id
+            WHERE
+                users.id = $1
+            GROUP BY
+                users.id
+        )
+        SELECT
+            *
+        FROM
+            user_roles_permissions;",
         )
         .bind(id)
         .fetch_one(db)
         .await?;
 
-        let user: User = User::from_row(&row).unwrap();
+        let user: User = User::from_row(&row)?;
 
-        let roles = row
-            .try_get::<Json<Option<Roles>>, _>("roles")
-            .map(|x| x.0)
-            .unwrap_or(None);
+        let roles: RolesWithPermissions = serde_json::from_value(row.get("roles"))
+            .unwrap_or(RolesWithPermissions { roles: vec![] });
 
-        println!("{:#?}", roles);
+        let user_with_roles_with_permissions = UserWithRolesWithPermissions { user, roles };
 
-        Ok(())
+        Ok(user_with_roles_with_permissions)
     }
 }
 
@@ -120,15 +121,24 @@ pub struct UserWithRoles {
     pub roles: Vec<Role>,
 }
 
+/// User - Roles - permissions --
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Roles {
+pub struct UserWithRolesWithPermissions {
+    pub user: User,
+    pub roles: RolesWithPermissions,
+}
+
+// Role(s)
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RolesWithPermissions {
     pub roles: Vec<RoleWithPermissions>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+// Role
+#[derive(Debug, Deserialize, Serialize)]
 pub struct RoleWithPermissions {
     pub role: Role,
-    pub permissions: Option<Vec<Option<Permission>>>,
+    pub permissions: Vec<Option<Permission>>,
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug, Clone, Default)]
@@ -284,6 +294,9 @@ impl Permission {
     }
 }
 
+////////////////////////////////////////////////////////////////////////
+////////////////////////////////Draft SQls ///////////////////////////////////
+////////////////////////////////////////////////////////////////////////
 // SELECT users.*,
 //     JSON_AGG(user_roles.roles_permissions) AS roles
 //     FROM (
@@ -303,3 +316,85 @@ impl Permission {
 //         ) as user_roles
 //         JOIN users ON users.id = user_roles.id
 //         GROUP BY users.id;
+
+// WITH role_perms AS (
+//     SELECT
+//         roles.id AS role_id,
+//         jsonb_build_object('role', roles.*, 'permissions', jsonb_agg(permissions.*)) AS role_permissions
+//     FROM
+//         roles
+//         LEFT JOIN roles_permissions rp ON rp.role_id = roles.id
+//         LEFT JOIN permissions ON rp.permission_id = permissions.id
+//     GROUP BY
+//         roles.id
+// ),
+// user_roles_permissions AS (
+//     SELECT
+//         users.*,
+//         jsonb_build_object('roles', jsonb_agg(role_perms.role_permissions)) AS roles
+//     FROM
+//         users
+//         LEFT JOIN users_roles ON users.id = users_roles.user_id
+//         LEFT JOIN roles ON users_roles.role_id = roles.id
+//         LEFT JOIN role_perms ON roles.id = role_perms.role_id
+//     WHERE
+//         users.id = $1
+//     GROUP BY
+//         users.id
+// )
+// SELECT
+//     *
+// FROM
+//     user_roles_permissions;
+
+// SELECT
+//             users.*,
+
+//             roles.id AS role_id,
+//             roles.name AS role_name,
+//             roles.created_at AS role_created_at,
+//             roles.updated_at AS role_updated_at,
+//             roles.deleted_at AS role_deleted_at,
+
+//             permissions.id AS permission_id,
+//             permissions.name AS permission_name,
+//             permissions.created_at AS permission_created_at,
+//             permissions.updated_at AS permission_updated_at,
+//             permissions.deleted_at AS permission_deleted_at
+//         FROM
+//             users
+//             LEFT JOIN users_roles ON users.id = users_roles.user_id
+//             LEFT JOIN roles ON users_roles.role_id = roles.id
+//             LEFT JOIN roles_permissions ON roles.id = roles_permissions.role_id
+//             LEFT JOIN permissions ON roles_permissions.permission_id = permissions.id
+//         WHERE users.id = $1
+//         GROUP BY
+//             users.id,
+//             roles.id,
+//             permissions.id;
+
+// let role: RoleWithPermissions;
+
+// let mut permissions: Vec<Permission> = vec![];
+// for row in rows {
+//     if let Ok(id) = row.try_get::<i32, _>("role_id") {
+//         let role = Role {
+//             id,
+//             name: row.get("role_name"),
+//             created_at: row.get("role_created_at"),
+//             updated_at: row.get("role_updated_at"),
+//             deleted_at: row.get("role_deleted_at"),
+//         };
+//     }
+
+//     if let Ok(id) = row.try_get::<i32, _>("permission_id") {
+//         let permission = Permission {
+//             id,
+//             name: row.get("permission_name"),
+//             created_at: row.get("permission_created_at"),
+//             updated_at: row.get("permission_updated_at"),
+//             deleted_at: row.get("permission_deleted_at"),
+//         };
+//         permissions.push(permission);
+//     }
+// }
