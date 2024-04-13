@@ -9,7 +9,7 @@ lazy_static! {
     pub static ref USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{8,50}$").unwrap();
 }
 
-// add Localized messages to validation errors
+// add Localized messages to validation errors ..
 pub fn validation_messages(errors: &ValidationErrors) -> ValidationErrors {
     let mut locale_errors: ValidationErrors = ValidationErrors::new();
 
